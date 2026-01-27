@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">TESTUpdate</h2>
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Update</h2>
     </x-slot>
 
     <div class="py-12">
@@ -9,6 +9,9 @@
                 <div class="p-6 space-y-6">
                     <div class="text-sm text-gray-600">
                         Aktuelle Version: <span class="font-semibold">{{ config('update.current_version') }}</span>
+                        @if (! empty($updateInfo) && $updateInfo['update_available'])
+                            <span class="ml-2 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">Update verfügbar</span>
+                        @endif
                     </div>
 
                     @if (session('status'))
@@ -30,10 +33,11 @@
                             <x-primary-button>Nach Updates suchen</x-primary-button>
                         </form>
 
-                        @if (session('update_info'))
-                            @php
-                                $info = session('update_info');
-                            @endphp
+                        @php
+                            $info = session('update_info') ?? $updateInfo;
+                        @endphp
+
+                        @if (! empty($info))
                             <div class="text-sm text-gray-700 space-y-1">
                                 <div>Neueste Version: <span class="font-semibold">{{ $info['latest'] }}</span></div>
                                 @if (! empty($info['released_at']))

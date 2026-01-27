@@ -17,7 +17,16 @@ class UpdateController extends Controller
 {
     public function show()
     {
-        return view('admin.update');
+        try {
+            $info = $this->fetchUpdateInfo();
+        } catch (Throwable $exception) {
+            Log::error('Update check failed.', ['error' => $exception->getMessage()]);
+            $info = null;
+        }
+
+        return view('admin.update', [
+            'updateInfo' => $info,
+        ]);
     }
 
     public function check()

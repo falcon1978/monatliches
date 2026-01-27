@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AccountBalanceController;
+use App\Http\Controllers\Admin\UpdateController as AdminUpdateController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EntryController;
@@ -82,6 +83,10 @@ Route::middleware('installed')->group(function () {
 
         Route::middleware('can:viewAny,App\\Models\\User')->prefix('admin')->name('admin.')->group(function () {
             Route::resource('users', AdminUserController::class)->except(['show']);
+            Route::get('update', [AdminUpdateController::class, 'show'])->name('update.show');
+            Route::post('update/check', [AdminUpdateController::class, 'check'])->name('update.check');
+            Route::post('update/download', [AdminUpdateController::class, 'download'])->name('update.download');
+            Route::post('update', [AdminUpdateController::class, 'run'])->name('update.run');
         });
 
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

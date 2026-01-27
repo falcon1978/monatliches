@@ -61,6 +61,8 @@ zip -r "dist/${ZIP_NAME}" . \
     -x "storage/app/private/installed.lock" \
     -x "storage/app/installer.key" \
     -x "storage/app/installer.env" \
+    -x "storage/app/update/*" \
+    -x "storage/app/private/update/*" \
     -x "storage/logs/*" \
     -x "storage/framework/cache/*" \
     -x "storage/framework/sessions/*" \

@@ -32,6 +32,9 @@
                         <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
                             Admin
                         </x-nav-link>
+                        <x-nav-link :href="route('admin.update.show')" :active="request()->routeIs('admin.update.*')">
+                            Update
+                        </x-nav-link>
                     @endif
                 </div>
             </div>
@@ -96,6 +99,9 @@
                     @if (Auth::user()->is_admin)
                         <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
                             Admin
+                        </x-responsive-nav-link>
+                        <x-responsive-nav-link :href="route('admin.update.show')" :active="request()->routeIs('admin.update.*')">
+                            Update
                         </x-responsive-nav-link>
                     @endif
                 </div>

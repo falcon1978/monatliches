@@ -64,6 +64,7 @@
                         <x-dropdown-link :href="route('recurring-templates.index')">Wiederkehrende Posten</x-dropdown-link>
                         @can('viewAny', App\Models\User::class)
                             <x-dropdown-link :href="route('admin.users.index')">Admin</x-dropdown-link>
+                            <x-dropdown-link :href="route('admin.update.show')">Update</x-dropdown-link>
                         @endcan
                         <div class="my-1 border-t border-gray-200/70"></div>
                         <x-dropdown-link :href="route('profile.edit')">Profil</x-dropdown-link>

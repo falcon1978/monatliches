@@ -28,6 +28,7 @@
 
                     <div class="rounded-md border border-emerald-100 bg-emerald-50/40 p-4 space-y-3">
                         <div class="text-sm font-semibold text-gray-800">Update prüfen</div>
+                        <div class="text-xs text-gray-600">Die Prüfung erfolgt automatisch beim Öffnen dieser Seite.</div>
                         <form method="POST" action="{{ route('admin.update.check') }}" class="flex justify-end">
                             @csrf
                             <x-primary-button>Nach Updates suchen</x-primary-button>
@@ -51,8 +52,11 @@
                             @if ($info['update_available'])
                                 <form method="POST" action="{{ route('admin.update.download') }}" class="flex justify-end">
                                     @csrf
-                                    <x-primary-button>Update herunterladen & installieren</x-primary-button>
+                                    <x-primary-button>Update herunterladen</x-primary-button>
                                 </form>
+                                <div class="text-xs text-gray-600">
+                                    Danach im Terminal ausführen: <span class="font-mono">php artisan app:apply-update</span>
+                                </div>
                             @else
                                 <div class="text-sm text-gray-600">Keine Updates verfügbar.</div>
                             @endif
@@ -61,24 +65,27 @@
 
                     <div class="rounded-md border border-gray-200 bg-white/50 p-4 space-y-3">
                         <div class="text-sm text-gray-600">
-                            Alternativ: Lade das Dist-ZIP hoch (monatliches-dist-vX.Y.Z.zip). .env und storage/ bleiben unangetastet.
+                            Alternativ: Lade das Dist-ZIP hoch (monatliches-dist-vX.Y.Z.zip). Es wird nur gespeichert.
+                        </div>
+                        <div class="text-xs text-gray-600">
+                            Danach im Terminal ausführen: <span class="font-mono">php artisan app:apply-update</span>
                         </div>
 
                         <form method="POST" action="{{ route('admin.update.run') }}" enctype="multipart/form-data" class="space-y-4">
                             @csrf
 
                             <div>
-                                <x-input-label for="package" value="Update ZIP" />
+                                <x-input-label for="package" value="Update ZIP (nur Upload)" />
                                 <input id="package" name="package" type="file" accept=".zip" class="mt-1 block w-full text-sm" required />
                                 <x-input-error :messages="$errors->get('package')" class="mt-2" />
                             </div>
 
                             <div class="flex justify-end">
-                                <x-primary-button>Update einspielen</x-primary-button>
+                                <x-primary-button>Update hochladen</x-primary-button>
                             </div>
                         </form>
-                    </div>
                 </div>
+            </div>
             </div>
         </div>
     </div>

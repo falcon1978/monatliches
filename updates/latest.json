@@ -1,7 +1,7 @@
 {
-  "version": "1.0.3",
-  "released_at": "2026-01-27",
-  "download_url": "https://github.com/falcon1978/monatliches/releases/download/1.0.3/monatliches-dist-v1.0.3.zip",
-  "sha256": "831dbc19c5ffc2ea076546a161c445fb890df31612f0b5b13e3b65f1f62e7399",
-  "changelog": "Update nur herunterladen + CLI anwenden."
+  "version": "1.0.4",
+  "released_at": "2026-01-29",
+  "download_url": "https://github.com/falcon1978/monatliches/releases/download/1.0.4/monatliches-dist-v1.0.4.zip",
+  "sha256": "40b548ce304b8c572557f5d7e565ebea4d143282eb2a46bf04dd944dd2cfaf00",
+  "changelog": "Update-Hinweis in der Navigation + ZIP-Download + Upload-Install."
 }

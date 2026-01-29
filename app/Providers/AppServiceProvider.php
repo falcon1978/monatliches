@@ -14,6 +14,7 @@ use App\Policies\EntryPolicy;
 use App\Policies\MonthPolicy;
 use App\Policies\RecurringTemplatePolicy;
 use App\Policies\UserPolicy;
+use App\Services\UpdateFeedService;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -70,6 +71,24 @@ class AppServiceProvider extends ServiceProvider
                 'months' => $months,
                 'currentMonthId' => $currentMonth?->id,
             ]);
+        });
+
+        View::composer('layouts.navigation', function ($view) {
+            if (app()->runningInConsole()) {
+                return;
+            }
+
+            $user = auth()->user();
+            if (! $user || ! $user->is_admin) {
+                return;
+            }
+
+            $info = app(UpdateFeedService::class)->getCachedInfo();
+            if (! $info || empty($info['update_available'])) {
+                return;
+            }
+
+            $view->with('navUpdateInfo', $info);
         });
     }
 }

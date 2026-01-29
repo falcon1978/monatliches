@@ -50,13 +50,13 @@
                             </div>
 
                             @if ($info['update_available'])
-                                <form method="POST" action="{{ route('admin.update.download') }}" class="flex justify-end">
-                                    @csrf
-                                    <x-primary-button>Update herunterladen</x-primary-button>
-                                </form>
-                                <div class="text-xs text-gray-600">
-                                    Danach im Terminal ausführen: <span class="font-mono">php artisan app:apply-update</span>
-                                </div>
+                                @if (! empty($info['download_url']))
+                                    <div class="flex justify-end">
+                                        <a href="{{ $info['download_url'] }}" target="_blank" rel="noopener" class="inline-flex items-center rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-500">
+                                            ZIP herunterladen
+                                        </a>
+                                    </div>
+                                @endif
                             @else
                                 <div class="text-sm text-gray-600">Keine Updates verfügbar.</div>
                             @endif
@@ -65,23 +65,20 @@
 
                     <div class="rounded-md border border-gray-200 bg-white/50 p-4 space-y-3">
                         <div class="text-sm text-gray-600">
-                            Alternativ: Lade das Dist-ZIP hoch (monatliches-dist-vX.Y.Z.zip). Es wird nur gespeichert.
-                        </div>
-                        <div class="text-xs text-gray-600">
-                            Danach im Terminal ausführen: <span class="font-mono">php artisan app:apply-update</span>
+                            Lade das Dist-ZIP hoch (monatliches-dist-vX.Y.Z.zip). Danach wird das Update automatisch installiert.
                         </div>
 
                         <form method="POST" action="{{ route('admin.update.run') }}" enctype="multipart/form-data" class="space-y-4">
                             @csrf
 
                             <div>
-                                <x-input-label for="package" value="Update ZIP (nur Upload)" />
+                                <x-input-label for="package" value="Update ZIP (Upload)" />
                                 <input id="package" name="package" type="file" accept=".zip" class="mt-1 block w-full text-sm" required />
                                 <x-input-error :messages="$errors->get('package')" class="mt-2" />
                             </div>
 
                             <div class="flex justify-end">
-                                <x-primary-button>Update hochladen</x-primary-button>
+                                <x-primary-button>Update installieren</x-primary-button>
                             </div>
                         </form>
                 </div>

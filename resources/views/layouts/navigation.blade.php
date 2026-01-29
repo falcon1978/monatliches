@@ -5,6 +5,23 @@
         <div class="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-transparent via-[var(--accent)]/60 to-transparent"></div>
     </div>
 
+    @if (! empty($navUpdateInfo) && $navUpdateInfo['update_available'])
+        @php
+            $updateLink = $navUpdateInfo['download_url'] ?? route('admin.update.show');
+        @endphp
+        <div class="relative w-full bg-amber-100/80 text-amber-900">
+            <div class="mx-auto flex items-center justify-between px-4 py-2 text-sm sm:px-6 lg:px-10">
+                <div class="flex items-center gap-2 font-semibold">
+                    <span class="inline-flex h-2 w-2 rounded-full bg-amber-500"></span>
+                    Update verfügbar: {{ $navUpdateInfo['latest'] }}
+                </div>
+                <a href="{{ $updateLink }}" class="text-sm font-semibold underline underline-offset-4" @if (! empty($navUpdateInfo['download_url'])) target="_blank" rel="noopener" @endif>
+                    ZIP herunterladen
+                </a>
+            </div>
+        </div>
+    @endif
+
     <div class="relative w-full px-4 sm:px-6 lg:px-10">
         <div class="flex h-16 items-center justify-between gap-6">
             <div class="flex items-center gap-6">

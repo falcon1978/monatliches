@@ -67,9 +67,6 @@
                                 <td class="px-4 py-2 text-gray-600">{{ $typeLabels[$account->type] ?? $account->type }}</td>
                                 <td class="px-4 py-2 text-right tabular-nums font-semibold {{ $balanceClass }}">
                                     CHF {{ $fmt($balance) }}
-                                    @if (! $isRelevant)
-                                        <span class="ml-2 text-[10px] uppercase tracking-wide text-gray-400">nicht relevant</span>
-                                    @endif
                                 </td>
                                 <td class="px-4 py-2 text-right">
                                     <div class="flex flex-col items-end gap-2">

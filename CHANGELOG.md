@@ -6,6 +6,7 @@
 - Monatsergebnis standardmäßig ohne Kontostand; aktueller Monat schaltet Kontostand ein.
 - Übertrag offener Posten mit Herkunfts-Badge und Rückgängig-Funktion.
 - Übertrag gesperrt, solange im Vormonat offene Posten existieren.
+- Kontenansicht: „nicht relevant“-Badge entfernt, 0.00 wird normal angezeigt.
 
 ## v1.0.0 - 2026-01-27
 

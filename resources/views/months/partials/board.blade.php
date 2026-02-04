@@ -283,17 +283,12 @@
                         @foreach ($forecastAccounts as $account)
                             @php
                                 $balance = $forecastBalances[$account->id] ?? 0;
-                                $isRelevant = (float) $balance !== 0.0;
                                 $balanceClass = $balance < 0 ? 'text-red-700' : 'text-gray-900';
-                                $balanceClass = $isRelevant ? $balanceClass : 'text-gray-400';
                             @endphp
                             <tr class="border-t border-green-200">
                                 <td class="{{ $rowPadClass }} pr-2 font-medium text-gray-900">{{ $account->name }}</td>
                             <td class="{{ $rowPadClass }} text-right tabular-nums font-semibold {{ $balanceClass }}">
                                 {{ $fmt($balance) }}
-                                @if (! $isRelevant)
-                                    <span class="ml-2 text-xs uppercase tracking-wide text-gray-400">nicht relevant</span>
-                                @endif
                             </td>
                             </tr>
                         @endforeach

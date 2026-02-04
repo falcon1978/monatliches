@@ -10,6 +10,7 @@ use App\Models\Month;
 use App\Models\RecurringTemplate;
 use App\Services\AccountBalanceService;
 use App\Services\MonthMetricsService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class MonthController extends Controller
@@ -25,7 +26,7 @@ class MonthController extends Controller
         $monthCards = $months->map(function (Month $month) use ($metricsService) {
             return [
                 'month' => $month,
-                'metrics' => $metricsService->calculate($month),
+                'metrics' => $metricsService->calculate($month, null, false),
             ];
         });
 
@@ -91,9 +92,18 @@ class MonthController extends Controller
         $accounts = Account::forUser($user)->orderBy('name')->get();
         $entryFilters = $request->only(['type', 'status', 'account_id']);
         $entriesOpen = $request->boolean('entries');
-
+        $includeBalanceInResult = $month->is_current;
         $boards = [
-            $this->buildBoardData($month, $user, $metricsService, $accounts, $balanceService, $entryFilters, $entriesOpen),
+            $this->buildBoardData(
+                $month,
+                $user,
+                $metricsService,
+                $accounts,
+                $balanceService,
+                $entryFilters,
+                $entriesOpen,
+                $includeBalanceInResult
+            ),
         ];
 
         return view('months.show', [
@@ -178,6 +188,210 @@ class MonthController extends Controller
         return redirect()
             ->route('months.show', $month)
             ->with('status', 'Nächster Monat erstellt.');
+    }
+
+    public function setCurrent(Request $request, Month $month): RedirectResponse
+    {
+        $this->authorize('update', $month);
+
+        $user = $request->user();
+        if ($month->user_id !== $user->id) {
+            abort(403);
+        }
+
+        $isCurrent = $request->boolean('is_current');
+
+        if ($isCurrent) {
+            Month::forUser($user)->update(['is_current' => false]);
+            $month->is_current = true;
+            $month->save();
+        } else {
+            $month->is_current = false;
+            $month->save();
+        }
+
+        return back()->with('status', $isCurrent ? 'Monat als aktuell markiert.' : 'Aktuellen Monat aufgehoben.');
+    }
+
+    public function rolloverOpenEntries(Request $request, Month $month): RedirectResponse
+    {
+        $this->authorize('update', $month);
+
+        $user = $request->user();
+        if ($month->user_id !== $user->id) {
+            abort(403);
+        }
+
+        if (! $month->is_current) {
+            return back()->withErrors(['rollover' => 'Nur der aktuelle Monat kann übertragen werden.']);
+        }
+
+        $previousStart = $month->date_from->copy()->subMonthNoOverflow()->startOfMonth();
+        $previousMonth = Month::forUser($user)
+            ->whereDate('date_from', $previousStart->toDateString())
+            ->first();
+
+        if ($previousMonth) {
+            $openPrevCount = Entry::query()
+                ->where('user_id', $user->id)
+                ->where('month_id', $previousMonth->id)
+                ->whereIn('type', ['income', 'expense', 'fixcost'])
+                ->where('status', '!=', 'paid')
+                ->count();
+
+            if ($openPrevCount > 0) {
+                return back()->withErrors(['rollover' => 'Im Vormonat sind noch offene Posten. Bitte zuerst abschliessen.']);
+            }
+        }
+
+        $targetStart = $month->date_from->copy()->addMonthNoOverflow()->startOfMonth();
+        $targetMonth = Month::forUser($user)
+            ->whereDate('date_from', $targetStart->toDateString())
+            ->first();
+
+        if (! $targetMonth) {
+            return back()->withErrors(['rollover' => 'Zielmonat nicht vorhanden.']);
+        }
+
+        $entries = Entry::query()
+            ->where('user_id', $user->id)
+            ->where('month_id', $month->id)
+            ->whereIn('type', ['income', 'expense', 'fixcost'])
+            ->where('status', '!=', 'paid')
+            ->get();
+
+        $moved = 0;
+
+        if ($entries->isNotEmpty()) {
+            $entriesByType = $entries->groupBy('type');
+
+            foreach ($entriesByType as $type => $group) {
+                $sorted = $group->sortBy(function (Entry $entry) {
+                    return $entry->due_date?->timestamp ?? $entry->entry_date?->timestamp ?? 0;
+                })->values();
+
+                $existingQuery = Entry::query()
+                    ->where('month_id', $targetMonth->id)
+                    ->where('type', $type)
+                    ->whereNotNull('sort_order');
+
+                if ($existingQuery->exists()) {
+                    $existingQuery->increment('sort_order', $sorted->count());
+                }
+
+                $startOrder = 1;
+
+                foreach ($sorted as $entry) {
+                    $update = [
+                        'month_id' => $targetMonth->id,
+                        'sort_order' => $startOrder++,
+                        'moved_from_month_id' => $month->id,
+                    ];
+
+                    if ($entry->type === 'expense') {
+                        $baseDate = $entry->due_date ?? $entry->entry_date;
+                        $update['due_date'] = $baseDate->copy()->addMonthNoOverflow()->toDateString();
+                    } else {
+                        $update['entry_date'] = $targetMonth->date_from->toDateString();
+                    }
+
+                    if (! $entry->origin_month_id) {
+                        $update['origin_month_id'] = $entry->moved_from_month_id ?? $month->id;
+                    }
+
+                    $entry->update($update);
+                    $moved++;
+                }
+            }
+        }
+
+        Month::forUser($user)->update(['is_current' => false]);
+        $targetMonth->is_current = true;
+        $targetMonth->save();
+
+        if ($moved === 0) {
+            return back()->with('status', "Keine offenen Posten. Aktueller Monat ist jetzt {$targetMonth->name}.");
+        }
+
+        return back()->with('status', "{$moved} offene Posten nach {$targetMonth->name} übertragen. Aktueller Monat aktualisiert.");
+    }
+
+    public function revertRollover(Request $request, Month $month): RedirectResponse
+    {
+        $this->authorize('update', $month);
+
+        $user = $request->user();
+        if ($month->user_id !== $user->id) {
+            abort(403);
+        }
+
+        if (! $month->is_current) {
+            return back()->withErrors(['rollover' => 'Nur der aktuelle Monat kann zurückgesetzt werden.']);
+        }
+
+        $previousStart = $month->date_from->copy()->subMonthNoOverflow()->startOfMonth();
+        $previousMonth = Month::forUser($user)
+            ->whereDate('date_from', $previousStart->toDateString())
+            ->first();
+
+        if (! $previousMonth) {
+            return back()->withErrors(['rollover' => 'Vormonat nicht vorhanden.']);
+        }
+
+        $entries = Entry::query()
+            ->where('user_id', $user->id)
+            ->where('month_id', $month->id)
+            ->whereIn('type', ['income', 'expense', 'fixcost'])
+            ->where('moved_from_month_id', $previousMonth->id)
+            ->get();
+
+        if ($entries->isEmpty()) {
+            return back()->with('status', 'Keine verschobenen Posten gefunden.');
+        }
+
+        $moved = 0;
+        $entriesByType = $entries->groupBy('type');
+
+        foreach ($entriesByType as $type => $group) {
+            $sorted = $group->sortBy(function (Entry $entry) {
+                return $entry->due_date?->timestamp ?? $entry->entry_date?->timestamp ?? 0;
+            })->values();
+
+            $maxOrder = Entry::query()
+                ->where('month_id', $previousMonth->id)
+                ->where('type', $type)
+                ->max('sort_order');
+
+            $startOrder = is_null($maxOrder) ? 1 : $maxOrder + 1;
+
+            foreach ($sorted as $entry) {
+                $update = [
+                    'month_id' => $previousMonth->id,
+                    'sort_order' => $startOrder++,
+                    'moved_from_month_id' => null,
+                ];
+
+                if ($entry->origin_month_id === $previousMonth->id) {
+                    $update['origin_month_id'] = null;
+                }
+
+                if ($entry->type === 'expense') {
+                    $baseDate = $entry->due_date ?? $entry->entry_date ?? $month->date_from;
+                    $update['due_date'] = $baseDate->copy()->subMonthNoOverflow()->toDateString();
+                } else {
+                    $update['entry_date'] = $previousMonth->date_from->toDateString();
+                }
+
+                $entry->update($update);
+                $moved++;
+            }
+        }
+
+        Month::forUser($user)->update(['is_current' => false]);
+        $previousMonth->is_current = true;
+        $previousMonth->save();
+
+        return back()->with('status', "{$moved} Posten nach {$previousMonth->name} zurückgesetzt. Aktueller Monat aktualisiert.");
     }
 
     private function copyEntriesFromMonth(Month $sourceMonth, Month $targetMonth): void
@@ -306,21 +520,26 @@ class MonthController extends Controller
         $accounts,
         AccountBalanceService $balanceService,
         array $entryFilters = [],
-        bool $entriesOpen = false
+        bool $entriesOpen = false,
+        bool $includeBalanceInResult = false
     ): array {
         $entries = $month->entries()
             ->where('user_id', $user->id)
-            ->with(['account', 'relatedEntry', 'relatedTransfersOut', 'recurringTemplate'])
+            ->with(['account', 'relatedEntry', 'relatedTransfersOut', 'recurringTemplate', 'movedFromMonth', 'originMonth'])
             ->orderByRaw('sort_order is null')
             ->orderBy('sort_order')
             ->orderBy('entry_date')
             ->get();
 
-        $metrics = $metricsService->calculate($month);
+        $metricVariants = $metricsService->calculateVariants($month);
+        $metrics = $includeBalanceInResult
+            ? $metricVariants['with_balance']
+            : $metricVariants['without_balance'];
         $cumulative = $metricsService->cumulativeFromToday($month);
         $metrics['cumulative_result'] = $cumulative['result_sum'];
         $metrics['cumulative_workdays'] = $cumulative['workdays_sum'];
         $metrics['required_revenue_per_workday_from_today'] = $cumulative['required_per_workday'];
+        $metrics['include_balance_in_result'] = $includeBalanceInResult;
 
         $forecastBalances = Entry::query()
             ->where('user_id', $user->id)
@@ -361,6 +580,38 @@ class MonthController extends Controller
         $hasFilters = collect($entryFilters)->filter(fn ($value) => $value !== null && $value !== '')->isNotEmpty();
         $entriesOpen = $entriesOpen || $hasFilters;
 
+        $nextMonth = Month::forUser($user)
+            ->whereDate(
+                'date_from',
+                $month->date_from->copy()->addMonthNoOverflow()->startOfMonth()->toDateString()
+            )
+            ->first();
+
+        $prevMonth = Month::forUser($user)
+            ->whereDate(
+                'date_from',
+                $month->date_from->copy()->subMonthNoOverflow()->startOfMonth()->toDateString()
+            )
+            ->first();
+
+        $prevMonthOpenCount = 0;
+        if ($prevMonth) {
+            $prevMonthOpenCount = Entry::query()
+                ->where('user_id', $user->id)
+                ->where('month_id', $prevMonth->id)
+                ->whereIn('type', ['income', 'expense', 'fixcost'])
+                ->where('status', '!=', 'paid')
+                ->count();
+        }
+
+        $revertCount = 0;
+        if ($month->is_current && $prevMonth) {
+            $revertCount = $entries
+                ->whereIn('type', ['income', 'expense', 'fixcost'])
+                ->where('moved_from_month_id', $prevMonth->id)
+                ->count();
+        }
+
         return [
             'month' => $month,
             'entries' => $entries,
@@ -372,6 +623,12 @@ class MonthController extends Controller
             'accountBalances' => $accountBalances,
             'balanceMeta' => $balanceMeta,
             'forecastBalances' => $forecastBalances,
+            'nextMonth' => $nextMonth,
+            'canRollover' => $month->is_current && $nextMonth && $prevMonthOpenCount === 0,
+            'prevMonth' => $prevMonth,
+            'prevMonthOpenCount' => $prevMonthOpenCount,
+            'revertCount' => $revertCount,
+            'canRevert' => $revertCount > 0,
             'pendingTemplates' => $this->countPendingTemplates($month),
         ];
     }

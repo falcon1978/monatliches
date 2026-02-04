@@ -289,7 +289,12 @@ class EntryController extends Controller
 
         $update = [
             'month_id' => $targetMonth->id,
+            'moved_from_month_id' => $currentMonth->id,
         ];
+
+        if (! $entry->origin_month_id) {
+            $update['origin_month_id'] = $currentMonth->id;
+        }
 
         if ($entry->type === 'expense') {
             $baseDate = $entry->due_date ?? $entry->entry_date;

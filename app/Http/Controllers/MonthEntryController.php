@@ -19,7 +19,7 @@ class MonthEntryController extends Controller
 
         $query = $month->entries()
             ->where('user_id', $request->user()->id)
-            ->with('account');
+            ->with(['account', 'movedFromMonth', 'originMonth']);
 
         if ($request->filled('type')) {
             $query->where('type', $request->input('type'));

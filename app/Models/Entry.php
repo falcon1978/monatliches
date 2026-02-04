@@ -21,6 +21,8 @@ class Entry extends Model
         'related_entry_id',
         'transfer_group_id',
         'recurring_template_id',
+        'moved_from_month_id',
+        'origin_month_id',
         'sort_order',
     ];
 
@@ -64,6 +66,16 @@ class Entry extends Model
     public function recurringTemplate()
     {
         return $this->belongsTo(RecurringTemplate::class);
+    }
+
+    public function movedFromMonth()
+    {
+        return $this->belongsTo(Month::class, 'moved_from_month_id');
+    }
+
+    public function originMonth()
+    {
+        return $this->belongsTo(Month::class, 'origin_month_id');
     }
 
     public function scopeForUser($query, User $user)

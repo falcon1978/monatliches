@@ -34,7 +34,12 @@
                             <div class="flex items-start justify-between gap-3">
                                 <div>
                                     <div class="text-[10px] uppercase tracking-[0.25em] text-gray-500">Monat</div>
-                                    <div class="text-lg font-semibold text-gray-900 group-hover:text-gray-950">{{ $month->name }}</div>
+                                    <div class="text-lg font-semibold text-gray-900 group-hover:text-gray-950 flex items-center gap-2">
+                                        <span>{{ $month->name }}</span>
+                                        @if ($month->is_current)
+                                            <span class="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800">Aktuell</span>
+                                        @endif
+                                    </div>
                                     <div class="text-xs text-gray-500">{{ $month->date_from->format('d.m.Y') }} – {{ $month->date_to->format('d.m.Y') }}</div>
                                     <div class="text-xs text-gray-500">Lebensunterhalt/Tag CHF {{ $fmt($month->daily_living_cost) }}</div>
                                 </div>

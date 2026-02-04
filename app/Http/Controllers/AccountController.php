@@ -23,18 +23,22 @@ class AccountController extends Controller
             ->get();
 
         $months = Month::forUser($user)->orderBy('date_from')->get();
-        $today = now()->startOfDay();
-        $currentIndex = $months->search(fn (Month $month) => $today->between($month->date_from, $month->date_to, true));
+        $currentMonth = $months->firstWhere('is_current', true);
 
-        if ($currentIndex === false) {
-            $currentIndex = $months->search(fn (Month $month) => $month->date_from->gte($today));
+        if (! $currentMonth) {
+            $today = now()->startOfDay();
+            $currentIndex = $months->search(fn (Month $month) => $today->between($month->date_from, $month->date_to, true));
+
+            if ($currentIndex === false) {
+                $currentIndex = $months->search(fn (Month $month) => $month->date_from->gte($today));
+            }
+
+            if ($currentIndex === false) {
+                $currentIndex = $months->count() ? $months->count() - 1 : null;
+            }
+
+            $currentMonth = $currentIndex !== null ? $months->get($currentIndex) : null;
         }
-
-        if ($currentIndex === false) {
-            $currentIndex = $months->count() ? $months->count() - 1 : null;
-        }
-
-        $currentMonth = $currentIndex !== null ? $months->get($currentIndex) : null;
 
         $forecastBalances = collect();
         $accountBalances = collect();

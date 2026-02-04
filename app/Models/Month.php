@@ -13,6 +13,7 @@ class Month extends Model
         'date_from',
         'date_to',
         'daily_living_cost',
+        'is_current',
     ];
 
     protected function casts(): array
@@ -21,6 +22,7 @@ class Month extends Model
             'date_from' => 'date',
             'date_to' => 'date',
             'daily_living_cost' => 'decimal:2',
+            'is_current' => 'boolean',
         ];
     }
 

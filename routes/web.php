@@ -43,12 +43,16 @@ Route::middleware('installed')->group(function () {
         Route::resource('months', MonthController::class);
         Route::post('months/next', [MonthController::class, 'createNext'])
             ->name('months.next');
+        Route::patch('months/{month}/current', [MonthController::class, 'setCurrent'])
+            ->name('months.current');
+        Route::post('months/{month}/rollover', [MonthController::class, 'rolloverOpenEntries'])
+            ->name('months.rollover');
+        Route::post('months/{month}/rollover-revert', [MonthController::class, 'revertRollover'])
+            ->name('months.rollover.revert');
         Route::post('months/{month}/import-templates', [MonthController::class, 'importTemplates'])
             ->name('months.import-templates');
         Route::patch('months/{month}/balances/{account}', [AccountBalanceController::class, 'update'])
             ->name('months.balances.update');
-        Route::patch('months/{month}/balances/{account}/{direction}', [AccountBalanceController::class, 'move'])
-            ->name('months.balances.move');
 
         Route::get('months/{month}/entries', [MonthEntryController::class, 'index'])
             ->name('months.entries.index');

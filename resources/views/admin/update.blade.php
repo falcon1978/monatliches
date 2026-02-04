@@ -14,12 +14,6 @@
                         @endif
                     </div>
 
-                    @if (session('status'))
-                        <div class="border border-green-200 dark:border-emerald-700/60 bg-green-50 dark:bg-emerald-900/30 text-green-800 dark:text-emerald-100 p-3 text-sm accent-box">
-                            {{ session('status') }}
-                        </div>
-                    @endif
-
                     @if ($errors->has('update'))
                         <div class="border border-red-200 bg-red-50 text-red-800 p-3 text-sm accent-box">
                             {{ $errors->first('update') }}

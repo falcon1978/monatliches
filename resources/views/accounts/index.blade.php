@@ -25,12 +25,6 @@
 
     <div class="py-6">
         <div class="w-full px-4 sm:px-6 lg:px-10 space-y-4">
-            @if (session('status'))
-                <div class="border border-green-200 dark:border-emerald-700/60 bg-green-50 dark:bg-emerald-900/30 text-green-800 dark:text-emerald-100 p-3 text-sm accent-box" x-data="{ show: true }" x-init="setTimeout(() => show = false, 5000)" x-show="show" x-transition.opacity x-cloak>
-                    {{ session('status') }}
-                </div>
-            @endif
-
             @if ($errors->has('account'))
                 <div class="border border-red-200 bg-red-50 text-red-800 p-3 text-sm accent-box">
                     {{ $errors->first('account') }}
@@ -64,12 +58,7 @@
                                 $balance = $account->type === 'forecast'
                                     ? $forecastOpen
                                     : (float) ($accountBalances[$account->id] ?? 0);
-                                $meta = $balanceMeta[$account->id] ?? null;
-                                $isRelevant = $account->type === 'forecast'
-                                    ? ((float) $forecastOpen !== 0.0)
-                                    : ($meta['is_relevant'] ?? ((float) $balance !== 0.0));
                                 $balanceClass = $balance < 0 ? 'text-red-700' : 'text-gray-900';
-                                $balanceClass = $isRelevant ? $balanceClass : 'text-gray-400';
                                 $balanceInput = number_format($balance, 2, '.', '');
                                 $canEditBalance = $currentMonth && in_array($account->type, ['ist', 'clearing'], true);
                             @endphp
@@ -109,9 +98,9 @@
 
             <div class="text-xs text-gray-500">
                 @if ($hasClearing)
-                    Forecast-Konten zeigen offene Einnahmen; Ist-/Verrechnungs-Konten zeigen den Kontostand des aktuellen Monats.
+                    Forecast-Konten zeigen offene Einnahmen; Ist-/Verrechnungs-Konten zeigen den aktuellen Kontostand.
                 @else
-                    Forecast-Konten zeigen offene Einnahmen; Ist-Konten zeigen den Kontostand des aktuellen Monats.
+                    Forecast-Konten zeigen offene Einnahmen; Ist-Konten zeigen den aktuellen Kontostand.
                 @endif
             </div>
         </div>

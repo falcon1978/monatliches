@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AccountBalance;
 use App\Models\Entry;
 use App\Models\Month;
 use App\Services\AccountBalanceService;
@@ -13,32 +14,20 @@ class MonthMetricsService
     {
     }
 
-    public function calculate(Month $month): array
+    public function calculate(Month $month, ?Carbon $today = null, bool $includeBalance = true): array
     {
-        $openForecastIncome = $this->openForecastIncome($month);
-        $nonCustomerIncome = $this->nonCustomerIncome($month);
-        $balanceIncome = $this->balanceIncome($month);
-        $openExpenses = $this->openExpenses($month);
-        $remainingDays = $month->remainingDaysForLivingCost();
-        $livingCostOpen = round($remainingDays * (float) $month->daily_living_cost, 2);
-        $incomeTotal = round($openForecastIncome + $nonCustomerIncome + $balanceIncome, 2);
-        $result = round($incomeTotal - ($openExpenses + $livingCostOpen), 2);
-        $workdaysRemaining = $month->workdaysRemaining();
-        $requiredRevenuePerWorkday = $workdaysRemaining > 0
-            ? round($result / $workdaysRemaining, 2)
-            : 0.0;
+        $base = $this->baseMetrics($month, $today);
+
+        return $this->buildMetrics($base, $includeBalance);
+    }
+
+    public function calculateVariants(Month $month, ?Carbon $today = null): array
+    {
+        $base = $this->baseMetrics($month, $today);
 
         return [
-            'open_forecast_income' => $openForecastIncome,
-            'non_customer_income' => $nonCustomerIncome,
-            'balance_income' => $balanceIncome,
-            'income_total' => $incomeTotal,
-            'open_expenses' => $openExpenses,
-            'living_cost_open' => $livingCostOpen,
-            'result' => $result,
-            'workdays_remaining' => $workdaysRemaining,
-            'required_revenue_per_workday' => $requiredRevenuePerWorkday,
-            'remaining_days' => $remainingDays,
+            'without_balance' => $this->buildMetrics($base, false),
+            'with_balance' => $this->buildMetrics($base, true),
         ];
     }
 
@@ -73,9 +62,25 @@ class MonthMetricsService
             ];
         }
 
-        $sumResults = 0.0;
+        $carryOver = 0.0;
+        $hasBaseBalance = AccountBalance::forUser($targetMonth->user)->exists();
+
+        if (! $hasBaseBalance) {
+            $firstMonth = $months->first();
+            $carryOverMonths = Month::forUser($targetMonth->user)
+                ->whereDate('date_to', '<', $firstMonth->date_from->toDateString())
+                ->orderBy('date_from')
+                ->get();
+
+            foreach ($carryOverMonths as $month) {
+                $carryOver += $this->calculate($month, $month->date_from->copy(), false)['result'];
+            }
+        }
+
+        $balanceIncome = $this->balanceIncome($targetMonth);
+        $sumResults = $carryOver + $balanceIncome;
         foreach ($months as $month) {
-            $sumResults += $this->calculate($month)['result'];
+            $sumResults += $this->calculate($month, null, false)['result'];
         }
 
         $workdays = $this->countWorkdaysBetween($today, $targetMonth->date_to->copy()->startOfDay());
@@ -150,6 +155,50 @@ class MonthMetricsService
     public function balanceIncome(Month $month): float
     {
         return $this->balanceService->effectiveBalanceSum($month);
+    }
+
+    private function baseMetrics(Month $month, ?Carbon $today = null): array
+    {
+        $openForecastIncome = $this->openForecastIncome($month);
+        $nonCustomerIncome = $this->nonCustomerIncome($month);
+        $balanceIncome = $this->balanceIncome($month);
+        $openExpenses = $this->openExpenses($month);
+        $remainingDays = $month->remainingDaysForLivingCost($today);
+        $livingCostOpen = round($remainingDays * (float) $month->daily_living_cost, 2);
+        $workdaysRemaining = $month->workdaysRemaining($today);
+
+        return [
+            'open_forecast_income' => $openForecastIncome,
+            'non_customer_income' => $nonCustomerIncome,
+            'balance_income' => $balanceIncome,
+            'open_expenses' => $openExpenses,
+            'living_cost_open' => $livingCostOpen,
+            'workdays_remaining' => $workdaysRemaining,
+            'remaining_days' => $remainingDays,
+        ];
+    }
+
+    private function buildMetrics(array $base, bool $includeBalance): array
+    {
+        $balanceContribution = $includeBalance ? (float) $base['balance_income'] : 0.0;
+        $incomeTotal = round(
+            (float) $base['open_forecast_income'] + (float) $base['non_customer_income'] + $balanceContribution,
+            2
+        );
+        $result = round(
+            $incomeTotal - ((float) $base['open_expenses'] + (float) $base['living_cost_open']),
+            2
+        );
+        $workdaysRemaining = (int) $base['workdays_remaining'];
+        $requiredRevenuePerWorkday = $workdaysRemaining > 0
+            ? round($result / $workdaysRemaining, 2)
+            : 0.0;
+
+        return array_merge($base, [
+            'income_total' => $incomeTotal,
+            'result' => $result,
+            'required_revenue_per_workday' => $requiredRevenuePerWorkday,
+        ]);
     }
 
     private function countWorkdaysBetween(Carbon $start, Carbon $end): int

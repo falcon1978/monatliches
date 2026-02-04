@@ -67,7 +67,8 @@ zip -r "dist/${ZIP_NAME}" . \
     -x "storage/framework/cache/*" \
     -x "storage/framework/sessions/*" \
     -x "storage/framework/views/*" \
-    -x "public/hot"
+    -x "public/hot" \
+    -x ".codex/*"
 
 # Ensure required empty storage directories exist in the dist package.
 EMPTY_DIR_ROOT="${BUILD_TMP_DIR}/empty"

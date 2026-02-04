@@ -123,7 +123,12 @@
                         <td class="py-2">{{ $entry->entry_date->format('d.m.Y') }}</td>
                         <td>{{ $entry->due_date?->format('d.m.Y') ?? '–' }}</td>
                         <td>{{ $typeLabels[$entry->type] ?? $entry->type }}</td>
-                        <td>{{ $entry->description }}</td>
+                        <td>
+                            <div class="flex items-center gap-2">
+                                <span>{{ $entry->description }}</span>
+                                @include('months.partials.carryover-badge', ['entry' => $entry])
+                            </div>
+                        </td>
                         <td>{{ $accountLabel }}</td>
                         <td class="text-right tabular-nums font-semibold">CHF {{ $fmt($entry->amount) }}</td>
                         <td>{{ $statusLabels[$entry->status] ?? $entry->status }}</td>

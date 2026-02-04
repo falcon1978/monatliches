@@ -14,7 +14,6 @@ class AccountBalanceService
     {
         $query = Entry::query()
             ->where('user_id', $month->user_id)
-            ->where('month_id', $month->id)
             ->whereIn('type', ['income', 'expense', 'fixcost', 'transfer'])
             ->whereHas('account', static function ($query) {
                 $query->whereIn('type', ['ist', 'clearing']);
@@ -59,8 +58,9 @@ class AccountBalanceService
     public function balanceMetaForMonth(Month $month, Collection $accounts): array
     {
         $baseBalances = AccountBalance::forUser($month->user)
-            ->where('month_id', $month->id)
+            ->orderByDesc('updated_at')
             ->get()
+            ->unique('account_id')
             ->mapWithKeys(static fn (AccountBalance $balance) => [
                 $balance->account_id => round((float) $balance->amount, 2),
             ]);

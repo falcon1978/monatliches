@@ -27,6 +27,7 @@
     $balanceAmounts = $accountBalances ?? collect();
     $balanceMeta = $balanceMeta ?? [];
     $forecastBalances = $forecastBalances ?? collect();
+    $includeBalanceInResult = (bool) ($metrics['include_balance_in_result'] ?? false);
 
     $incomes = $entries
         ->where('type', 'income')
@@ -51,11 +52,11 @@
             return $source === 'expected' && in_array($entry->status, ['open', 'partial'], true);
         })
         ->values();
-    $balanceSum = $balanceAccounts->sum(fn ($account) => (float) ($balanceAmounts[$account->id] ?? 0));
     $customerIncomeSum = $customerIncomes->sum(fn ($entry) => $entry->open_amount);
     $recurringIncomeSum = $recurringIncomes->sum(fn ($entry) => $entry->open_amount);
     $manualIncomeSum = $manualIncomes->sum(fn ($entry) => $entry->open_amount);
-    $incomeSum = $balanceSum + $customerIncomeSum + $recurringIncomeSum + $manualIncomeSum;
+    $balanceSum = $balanceAccounts->sum(fn ($account) => (float) ($balanceAmounts[$account->id] ?? 0));
+    $incomeSum = $customerIncomeSum + $recurringIncomeSum + $manualIncomeSum;
 
     $expenses = $entries
         ->where('type', 'expense')
@@ -96,6 +97,12 @@
         </div>
     @endif
 
+    @if (($prevMonthOpenCount ?? 0) > 0 && $month->is_current)
+        <div class="border border-amber-200 bg-amber-50 text-amber-900 p-3 text-sm accent-box">
+            Im Vormonat {{ $prevMonth?->name }} sind noch {{ $prevMonthOpenCount }} offene Posten. Der Übertrag in den nächsten Monat ist gesperrt.
+        </div>
+    @endif
+
     <div class="relative overflow-hidden rounded-xl border accent-box bg-gradient-to-br from-emerald-50 via-white to-emerald-100/70 dark:from-emerald-950/40 dark:via-slate-950 dark:to-emerald-900/30 shadow-sm">
         <div class="pointer-events-none absolute -left-12 -top-8 h-24 w-24 rounded-full bg-emerald-200/50 dark:bg-emerald-500/10 blur-2xl"></div>
         <div class="pointer-events-none absolute -right-10 bottom-0 h-20 w-20 rounded-full bg-amber-200/40 dark:bg-amber-500/10 blur-2xl"></div>
@@ -108,6 +115,9 @@
                         </button>
                     @endcan
                     <span class="text-xs font-semibold text-gray-900 dark:text-slate-100">{{ $month->name }}</span>
+                    @if ($month->is_current)
+                        <span class="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800">Aktuell</span>
+                    @endif
                     <span class="text-gray-400">•</span>
                     <span>{{ $month->date_from->format('d.m.Y') }} – {{ $month->date_to->format('d.m.Y') }}</span>
                     <span class="text-gray-400">·</span>
@@ -115,6 +125,22 @@
                     <button type="button" class="inline-flex items-center gap-1 rounded-full border border-[var(--accent)] bg-white/80 dark:bg-slate-900/70 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--accent)] transition hover:opacity-80" @click="entriesOpen = true; $nextTick(() => $refs.entriesSection?.scrollIntoView({ behavior: 'smooth', block: 'start' }))">
                         Einträge
                     </button>
+                    @if ($canRollover ?? false)
+                        <form method="POST" action="{{ route('months.rollover', $month) }}" onsubmit="return confirm('Offene Posten nach {{ $nextMonth?->name }} übertragen?');">
+                            @csrf
+                            <button type="submit" class="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-amber-800 transition hover:opacity-80">
+                                Übertragen
+                            </button>
+                        </form>
+                    @endif
+                    @if ($canRevert ?? false)
+                        <form method="POST" action="{{ route('months.rollover.revert', $month) }}" onsubmit="return confirm('Übertrag aus {{ $prevMonth?->name }} rückgängig machen?');">
+                            @csrf
+                            <button type="submit" class="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-red-700 transition hover:opacity-80">
+                                Übertrag rückgängig
+                            </button>
+                        </form>
+                    @endif
                 </div>
             </div>
             @can('update', $month)
@@ -129,9 +155,54 @@
                     <button type="button" class="h-8 rounded border border-gray-300 px-3 text-xs font-semibold text-gray-600" @click="editing = false; $nextTick(() => $refs.editForm?.reset())">Abbrechen</button>
                 </form>
             @endcan
+            @if ($balanceAccounts->isNotEmpty())
+                <div class="mt-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-600">
+                        <div class="text-xs uppercase tracking-[0.2em] text-gray-500">Kontostände</div>
+                        <div class="text-xs text-gray-500">Summe CHF {{ $fmt($balanceSum) }}</div>
+                    </div>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                        @foreach ($balanceAccounts as $account)
+                            @php
+                                $balance = $balanceAmounts[$account->id] ?? 0;
+                                $balanceClass = $balance < 0 ? 'text-red-700' : 'text-gray-900';
+                                $balanceInput = number_format((float) $balance, 2, '.', '');
+                            @endphp
+                            <div class="min-w-[12rem] rounded-lg border accent-box bg-white/80 dark:bg-slate-900/70 px-2 py-1">
+                                <div class="text-xs uppercase tracking-wide text-gray-500">{{ $account->name }}</div>
+                                <div class="mt-1 flex items-center justify-between gap-2">
+                                    <div x-data="{ editing: false, value: '{{ $balanceInput }}' }" @click.outside="editing = false" class="w-full">
+                                        <form method="POST" action="{{ route('months.balances.update', [$month, $account]) }}" class="flex items-center justify-between gap-2">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="button" x-show="!editing" @click="editing = true; $nextTick(() => $refs.input.focus())" class="text-right tabular-nums font-semibold {{ $balanceClass }}">
+                                                {{ $fmt($balance) }}
+                                            </button>
+                                            <input x-ref="input" x-show="editing" x-cloak type="number" step="0.01" name="amount" x-model="value" class="w-24 border border-gray-300 rounded px-2 py-1 text-sm text-right tabular-nums focus:border-[var(--accent)] focus:ring-[var(--accent)]" @keydown.enter.stop.prevent="$el.form.submit()" @keydown.escape="editing = false">
+                                            <button x-show="editing" x-cloak type="submit" class="px-2 py-1 bg-[var(--accent)] text-white rounded text-xs">OK</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
             <div class="mt-2 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr),auto] items-center gap-3">
                 <div class="space-y-1 w-full min-w-0">
-                    <div class="text-xs uppercase tracking-[0.2em] text-emerald-700/90">Monatsergebnis</div>
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs uppercase tracking-[0.2em] text-emerald-700/90">
+                        <span>Monatsergebnis</span>
+                        <form method="POST" action="{{ route('months.current', $month) }}">
+                            @csrf
+                            @method('PATCH')
+                            <input type="hidden" name="is_current" value="{{ $includeBalanceInResult ? 0 : 1 }}">
+                            <button type="submit" role="switch" aria-checked="{{ $includeBalanceInResult ? 'true' : 'false' }}" class="inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-white/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 transition hover:opacity-80">
+                                <span>Aktueller Monat</span>
+                                <span class="{{ $includeBalanceInResult ? 'text-emerald-700' : 'text-gray-400' }}">{{ $includeBalanceInResult ? 'Ein' : 'Aus' }}</span>
+                            </button>
+                        </form>
+                    </div>
+                    <div class="text-[10px] uppercase tracking-[0.18em] text-gray-500">Kontostand zählt nur beim aktuellen Monat.</div>
                     <div class="w-full rounded-lg px-3 py-2 text-center text-2xl font-semibold tabular-nums {{ $monthResultBarClass }}">
                         CHF {{ $fmt($metrics['result'] ?? 0) }}
                     </div>
@@ -172,57 +243,6 @@
                     </tr>
                 </thead>
                 <tbody data-sortable data-order-url="{{ route('months.entries.order', $month) }}" data-type="income">
-                    @if ($balanceAccounts->isNotEmpty())
-                        <tr class="border-t border-green-200 text-xs uppercase tracking-wide text-green-900 dark:text-emerald-200">
-                            <td class="pt-2 pb-1">Kontostand</td>
-                            <td class="pt-2 pb-1 text-right"></td>
-                        </tr>
-                        @foreach ($balanceAccounts as $account)
-                            @php
-                                $balance = $balanceAmounts[$account->id] ?? 0;
-                                $meta = $balanceMeta[$account->id] ?? null;
-                                $isRelevant = $meta['is_relevant'] ?? ((float) $balance !== 0.0);
-                                $balanceClass = $balance < 0 ? 'text-red-700' : 'text-gray-900';
-                                $balanceClass = $isRelevant ? $balanceClass : 'text-gray-400';
-                                $balanceInput = number_format((float) $balance, 2, '.', '');
-                            @endphp
-                            <tr class="border-t border-green-200">
-                                <td class="{{ $rowPadClass }} pr-2 font-medium text-gray-900">{{ $account->name }}</td>
-                            <td class="{{ $rowPadClass }} text-right tabular-nums font-semibold {{ $balanceClass }}">
-                                    <div class="{{ $actionRowClass }}">
-                                        <form x-show="moveMode" x-cloak method="POST" action="{{ route('months.balances.move', [$month, $account, 'prev']) }}">
-                                            @csrf
-                                            @method('PATCH')
-                                            <button type="submit" class="text-xs text-[var(--accent)] underline" title="Vorheriger Monat">←</button>
-                                        </form>
-                                        <form x-show="moveMode" x-cloak method="POST" action="{{ route('months.balances.move', [$month, $account, 'next']) }}">
-                                            @csrf
-                                            @method('PATCH')
-                                            <button type="submit" class="text-xs text-[var(--accent)] underline" title="Nächster Monat">→</button>
-                                        </form>
-                                        <div x-data="{ editing: false, value: '{{ $balanceInput }}' }" @click.outside="editing = false">
-                                            <form method="POST" action="{{ route('months.balances.update', [$month, $account]) }}" class="flex items-center justify-end gap-2">
-                                                @csrf
-                                                @method('PATCH')
-                                                <button type="button" x-show="!editing" @click="editing = true; $nextTick(() => $refs.input.focus())" class="text-right tabular-nums focus:outline-none">
-                                                    {{ $fmt($balance) }}
-                                                </button>
-                                                <input x-ref="input" x-show="editing" x-cloak type="number" step="0.01" name="amount" x-model="value" class="w-24 border border-gray-300 rounded px-2 py-1 text-sm text-right tabular-nums focus:border-[var(--accent)] focus:ring-[var(--accent)]" @keydown.enter.stop.prevent="$el.form.submit()" @keydown.escape="editing = false">
-                                                <button x-show="editing" x-cloak type="submit" class="px-2 py-1 bg-[var(--accent)] text-white rounded text-xs">OK</button>
-                                            </form>
-                                        </div>
-                                        @if (! $isRelevant)
-                                            <span class="text-xs uppercase tracking-wide text-gray-400">nicht relevant</span>
-                                        @endif
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforeach
-                        <tr class="border-t border-green-200">
-                            <td class="py-2" colspan="2"></td>
-                        </tr>
-                    @endif
-
                     @if ($forecastAccounts->isNotEmpty())
                         <tr class="border-t border-green-200 text-xs uppercase tracking-wide text-green-900 dark:text-emerald-200">
                             <td class="pt-2 pb-1">
@@ -337,6 +357,7 @@
                                         <x-icon-edit class="w-3 h-3" />
                                     </button>
                                     <span>{{ $income->description }}</span>
+                                    @include('months.partials.carryover-badge', ['entry' => $income])
                                 </div>
                                 <input x-show="editing" x-cloak x-ref="description" type="text" name="description" form="{{ $incomeEditId }}" x-model="description" class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:border-[var(--accent)] focus:ring-[var(--accent)]" @keydown.enter.stop.prevent="$el.form.submit()">
                                 @if ($income->recurringTemplate && ($income->recurringTemplate->remaining_amount !== null || $income->recurringTemplate->ends_on))
@@ -463,6 +484,7 @@
                                             <x-icon-edit class="w-3 h-3" />
                                         </button>
                                         <span>{{ $income->description }}</span>
+                                        @include('months.partials.carryover-badge', ['entry' => $income])
                                     </div>
                                     <input x-show="editing" x-cloak x-ref="description" type="text" name="description" form="{{ $incomeEditId }}" x-model="description" class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:border-[var(--accent)] focus:ring-[var(--accent)]" @keydown.enter.stop.prevent="$el.form.submit()">
                                     @if ($income->recurringTemplate && ($income->recurringTemplate->remaining_amount !== null || $income->recurringTemplate->ends_on))
@@ -592,6 +614,7 @@
                                                 <x-icon-edit class="w-3 h-3" />
                                             </button>
                                             <span>{{ $income->description }}</span>
+                                            @include('months.partials.carryover-badge', ['entry' => $income])
                                         </div>
                                         <input x-show="editing" x-cloak x-ref="description" type="text" name="description" form="{{ $incomeEditId }}" x-model="description" class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:border-[var(--accent)] focus:ring-[var(--accent)]" @keydown.enter.stop.prevent="$el.form.submit()">
                                         @if ($income->recurringTemplate && ($income->recurringTemplate->remaining_amount !== null || $income->recurringTemplate->ends_on))
@@ -731,6 +754,7 @@
                                         <x-icon-edit class="w-3 h-3" />
                                     </button>
                                     <span>{{ $expense->description }}</span>
+                                    @include('months.partials.carryover-badge', ['entry' => $expense])
                                 </div>
                                 <input x-show="editing" x-cloak x-ref="description" type="text" name="description" form="{{ $expenseEditId }}" x-model="description" class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:border-[var(--accent)] focus:ring-[var(--accent)]" @keydown.enter.stop.prevent="$el.form.submit()">
                                 @if ($expense->recurringTemplate && ($expense->recurringTemplate->remaining_amount !== null || $expense->recurringTemplate->ends_on))
@@ -902,6 +926,7 @@
                                         <x-icon-edit class="w-3 h-3" />
                                     </button>
                                     <span>{{ $fixcost->description }}</span>
+                                    @include('months.partials.carryover-badge', ['entry' => $fixcost])
                                 </div>
                                 <input x-show="editing" x-cloak x-ref="description" type="text" name="description" form="{{ $fixcostEditId }}" x-model="description" class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:border-[var(--accent)] focus:ring-[var(--accent)]" @keydown.enter.stop.prevent="$el.form.submit()">
                                 @if ($fixcost->recurringTemplate && ($fixcost->recurringTemplate->remaining_amount !== null || $fixcost->recurringTemplate->ends_on))

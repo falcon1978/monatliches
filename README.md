@@ -2,6 +2,15 @@
 
 Monatliches ist ein schlankes Budget- und Monatsplanungs-Tool auf Laravel-Basis.
 
+## Wichtige Konzepte
+
+- Es gibt genau einen **aktuellen Monat**. Nur dieser Monat rechnet den Kontostand ins Monatsergebnis ein.
+- Das **Monatsergebnis** ist standardmäßig ohne Kontostand. **Kumuliert ab heute** enthält den Kontostand immer.
+- **Kontostände sind global pro Konto** (kein Kontostand pro Monat).
+- **Übertragen** verschiebt offene Posten in den nächsten Monat, inklusive Badge „Aus <Monat>“.
+- Übertragen ist gesperrt, solange im Vormonat noch offene Posten existieren.
+- Ein Übertrag kann wieder **rückgängig** gemacht werden.
+
 ## Installation (für Laien)
 
 1. Lade die Release-Datei `monatliches-dist-vX.Y.Z.zip` aus den GitHub Releases herunter.
@@ -29,8 +38,8 @@ Wenn die App unter `https://example.com/budget` läuft, muss `APP_URL` genau so 
 
 ## Updates
 
-Aktuell manuell: Neue `dist.zip` hochladen, dabei `.env` und `storage/` behalten.
-Danach ggf. Migrationen ausführen (`php artisan migrate --force`). Ein In‑App Updater folgt später.
+Im Admin-Bereich unter **Update** kann ein neues `monatliches-dist-vX.Y.Z.zip` hochgeladen werden.
+Dabei `.env` und `storage/` behalten. Danach ggf. Migrationen ausführen (`php artisan migrate --force`).
 
 ## Release-/Dist-Konzept
 

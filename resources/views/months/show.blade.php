@@ -6,12 +6,6 @@
     @endphp
     <div class="py-6">
         <div class="w-full px-4 sm:px-6 lg:px-10 space-y-4">
-            @if (session('status'))
-                <div class="border border-green-200 bg-green-50 text-green-800 p-3 text-sm accent-box" x-data="{ show: true }" x-init="setTimeout(() => show = false, 5000)" x-show="show" x-transition.opacity x-cloak>
-                    {{ session('status') }}
-                </div>
-            @endif
-
             @if ($errors->any())
                 <div class="border border-red-200 bg-red-50 text-red-800 p-3 text-sm accent-box">
                     {{ $errors->first() }}

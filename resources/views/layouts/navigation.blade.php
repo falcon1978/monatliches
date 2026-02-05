@@ -57,7 +57,7 @@
             </div>
 
             <div class="hidden md:flex items-center gap-3">
-                <x-dropdown align="right" width="48" content-classes="py-1 bg-white/95 backdrop-blur">
+                <x-dropdown align="right" width="48" content-classes="py-1 bg-white/95 backdrop-blur dark:bg-slate-900/95 dark:text-slate-100">
                     <x-slot name="trigger">
                         <button class="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-black/5 hover:text-gray-900 transition">
                             <span class="h-2 w-2 rounded-full bg-[var(--accent)]"></span>

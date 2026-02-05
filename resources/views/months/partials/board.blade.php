@@ -203,7 +203,6 @@
                             </button>
                         </form>
                     </div>
-                    <div class="text-[10px] uppercase tracking-[0.18em] text-gray-500">Kontostand zählt nur beim aktuellen Monat.</div>
                     <div class="w-full rounded-lg px-3 py-2 text-center text-2xl font-semibold tabular-nums {{ $monthResultBarClass }}">
                         CHF {{ $fmt($metrics['result'] ?? 0) }}
                     </div>

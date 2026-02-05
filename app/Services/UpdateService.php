@@ -33,6 +33,7 @@ class UpdateService
         $this->logStep('ZIP entpackt.');
 
         $sourceRoot = $this->detectSourceRoot($extractPath);
+        $packageVersion = $this->resolvePackageVersion($sourceRoot);
         $this->logStep('Quellverzeichnis erkannt: '.$sourceRoot);
         $this->applyUpdate($sourceRoot, base_path());
         $this->logStep('Dateien kopiert.');
@@ -44,7 +45,7 @@ class UpdateService
         $this->logStep('Caches geleert.');
         $this->logOutput(Artisan::output());
 
-        $this->refreshInstalledVersion();
+        $this->refreshInstalledVersion($packageVersion);
         $this->logStep('Installierte Version aktualisiert.');
     }
 
@@ -172,16 +173,18 @@ class UpdateService
         return false;
     }
 
-    private function refreshInstalledVersion(): void
+    private function refreshInstalledVersion(?string $forcedVersion = null): void
     {
-        $version = null;
+        $version = $forcedVersion;
         $payload = null;
 
-        $latestPath = base_path('updates/latest.json');
-        if (file_exists($latestPath)) {
-            $payload = json_decode(File::get($latestPath), true);
-            if (is_array($payload) && ! empty($payload['version'])) {
-                $version = (string) $payload['version'];
+        if (! $version) {
+            $latestPath = base_path('updates/latest.json');
+            if (file_exists($latestPath)) {
+                $payload = json_decode(File::get($latestPath), true);
+                if (is_array($payload) && ! empty($payload['version'])) {
+                    $version = (string) $payload['version'];
+                }
             }
         }
 
@@ -196,6 +199,21 @@ class UpdateService
                 'installed_at' => now()->toIso8601String(),
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
         );
+    }
+
+    private function resolvePackageVersion(string $sourceRoot): ?string
+    {
+        $latestPath = $sourceRoot.'/updates/latest.json';
+        if (! file_exists($latestPath)) {
+            return null;
+        }
+
+        $payload = json_decode(File::get($latestPath), true);
+        if (! is_array($payload) || empty($payload['version'])) {
+            return null;
+        }
+
+        return (string) $payload['version'];
     }
 
     private function logStep(string $message): void

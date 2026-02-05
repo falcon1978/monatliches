@@ -41,6 +41,9 @@ class UpdateService
         Artisan::call('migrate', ['--force' => true]);
         $this->logStep('Migrationen ausgeführt.');
         $this->logOutput(Artisan::output());
+        Artisan::call('storage:link');
+        $this->logStep('Storage-Link geprüft.');
+        $this->logOutput(Artisan::output());
         Artisan::call('optimize:clear');
         $this->logStep('Caches geleert.');
         $this->logOutput(Artisan::output());

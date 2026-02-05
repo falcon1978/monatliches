@@ -24,6 +24,7 @@ class User extends Authenticatable
         'is_admin',
         'accent_color',
         'employment_type',
+        'profile_photo_path',
     ];
 
     /**
@@ -78,6 +79,15 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return (bool) $this->is_admin;
+    }
+
+    public function profilePhotoUrl(): ?string
+    {
+        if (! $this->profile_photo_path) {
+            return null;
+        }
+
+        return \Illuminate\Support\Facades\Storage::disk('public')->url($this->profile_photo_path);
     }
 
     public static function accentPresets(): array

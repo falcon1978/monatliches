@@ -37,6 +37,8 @@ class ProfileUpdateRequest extends FormRequest
                 'regex:/^#[0-9a-fA-F]{6}$/',
                 Rule::in($accentPresets),
             ],
+            'profile_photo' => ['nullable', 'image', 'max:2048'],
+            'profile_photo_cropped' => ['nullable', 'string'],
         ];
     }
 }

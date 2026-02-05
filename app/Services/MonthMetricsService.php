@@ -39,8 +39,11 @@ class MonthMetricsService
     public function cumulativeFromToday(Month $targetMonth): array
     {
         $today = now()->startOfDay();
+        $currentMonth = Month::forUser($targetMonth->user)
+            ->where('is_current', true)
+            ->first();
 
-        if ($targetMonth->date_to->lt($today)) {
+        if ($targetMonth->date_to->lt($today) && (! $currentMonth || $currentMonth->date_from->gt($targetMonth->date_to))) {
             return [
                 'result_sum' => 0.0,
                 'workdays_sum' => 0,
@@ -48,8 +51,10 @@ class MonthMetricsService
             ];
         }
 
+        $sumStart = $currentMonth ? $currentMonth->date_from->copy()->startOfDay() : $today;
+
         $months = Month::forUser($targetMonth->user)
-            ->whereDate('date_to', '>=', $today->toDateString())
+            ->whereDate('date_to', '>=', $sumStart->toDateString())
             ->whereDate('date_from', '<=', $targetMonth->date_to->toDateString())
             ->orderBy('date_from')
             ->get();

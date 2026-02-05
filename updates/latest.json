@@ -2,6 +2,6 @@
   "version": "1.1.0",
   "released_at": "2026-02-04",
   "download_url": "https://github.com/falcon1978/monatliches/releases/download/1.1.0/monatliches-dist-v1.1.0.zip",
-  "sha256": "2f90d7bcd81a13a5c2b2b172b1f58965d51f030dcead622ce1ea6f451628faa9",
+  "sha256": "af169e7cfc8b16014270aea3b535833e3c0343b0ba22758e25f5daa9e9c627e9",
   "changelog": "Aktueller Monat + Kontostand-Logik, Übertrag mit Herkunfts-Badges und Rückgängig-Funktion."
 }

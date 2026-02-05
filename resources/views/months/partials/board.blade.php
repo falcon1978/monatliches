@@ -83,6 +83,7 @@
     $resultBarClass = $resultIsNegative
         ? 'bg-gradient-to-r from-red-200 via-red-100 to-red-200 text-red-800 border border-red-200/70 dark:from-red-900/40 dark:via-red-900/20 dark:to-red-900/40 dark:text-red-200 dark:border-red-700/60'
         : 'bg-gradient-to-r from-emerald-200 via-emerald-100 to-emerald-200 text-emerald-900 border border-emerald-200/70 dark:from-emerald-900/40 dark:via-emerald-900/20 dark:to-emerald-900/40 dark:text-emerald-200 dark:border-emerald-700/60';
+    $hideWorkdayMetrics = auth()->user()?->employment_type === 'self_employed';
 @endphp
 
 <div class="space-y-4" x-data="{ entriesOpen: {{ ($entriesOpen ?? false) ? 'true' : 'false' }}, editing: false }" x-init="if (entriesOpen) { $nextTick(() => $refs.entriesSection?.scrollIntoView({ behavior: 'smooth', block: 'start' })) }">
@@ -207,21 +208,23 @@
                         CHF {{ $fmt($metrics['result'] ?? 0) }}
                     </div>
                 </div>
-                <div class="space-y-1 justify-self-end">
+                <div class="space-y-1 w-full lg:justify-self-end">
                     <div class="text-xs uppercase tracking-[0.2em] text-emerald-700/90">Kummuliert ab heute</div>
-                    <div class="grid grid-cols-3 gap-2 max-w-[50vw]">
+                    <div class="grid grid-cols-1 {{ $hideWorkdayMetrics ? '' : 'sm:grid-cols-3' }} gap-2 w-full max-w-none sm:max-w-[50vw]">
                         <div class="rounded-lg border accent-box bg-white/80 dark:bg-slate-900/70 px-2 py-1">
                             <div class="text-xs uppercase tracking-wide text-gray-500">Resultat</div>
                             <div class="text-sm font-semibold tabular-nums {{ $resultTextClass }}">{{ $fmt($metrics['cumulative_result'] ?? 0) }}</div>
                         </div>
-                        <div class="rounded-lg border accent-box bg-white/80 dark:bg-slate-900/70 px-2 py-1">
-                            <div class="text-xs uppercase tracking-wide text-gray-500">Arbeitstage</div>
-                            <div class="text-sm font-semibold tabular-nums text-gray-900">{{ $metrics['cumulative_workdays'] ?? 0 }}</div>
-                        </div>
-                        <div class="rounded-lg border accent-box bg-white/80 dark:bg-slate-900/70 px-2 py-1">
-                            <div class="text-xs uppercase tracking-wide text-gray-500">Umsatz/AT</div>
-                            <div class="text-sm font-semibold tabular-nums {{ $resultTextClass }}">{{ $fmt($metrics['required_revenue_per_workday_from_today'] ?? 0) }}</div>
-                        </div>
+                        @if (! $hideWorkdayMetrics)
+                            <div class="rounded-lg border accent-box bg-white/80 dark:bg-slate-900/70 px-2 py-1">
+                                <div class="text-xs uppercase tracking-wide text-gray-500">Arbeitstage</div>
+                                <div class="text-sm font-semibold tabular-nums text-gray-900">{{ $metrics['cumulative_workdays'] ?? 0 }}</div>
+                            </div>
+                            <div class="rounded-lg border accent-box bg-white/80 dark:bg-slate-900/70 px-2 py-1">
+                                <div class="text-xs uppercase tracking-wide text-gray-500">Umsatz/AT</div>
+                                <div class="text-sm font-semibold tabular-nums {{ $resultTextClass }}">{{ $fmt($metrics['required_revenue_per_workday_from_today'] ?? 0) }}</div>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -264,9 +267,9 @@
                                 <input type="hidden" name="income_source" value="expected">
                             </x-slot>
                             <td class="py-2 pr-2">
-                                <div class="{{ $inputStackClass }}">
-                                    <input type="text" name="description" form="{{ $incomeFormId }}" class="w-full border border-transparent bg-white/60 px-2 py-1 text-sm focus:border-[var(--accent)] focus:ring-[var(--accent)]" placeholder="Neue erwartete Einnahme" required>
-                                    <select name="account_id" form="{{ $incomeFormId }}" class="border border-transparent bg-white/60 px-2 py-1 text-sm focus:border-[var(--accent)] focus:ring-[var(--accent)]" required>
+                                <div class="flex flex-col gap-2 sm:gap-1 sm:{{ $inputStackClass }}">
+                                    <input type="text" name="description" form="{{ $incomeFormId }}" class="w-full border border-transparent bg-white/60 px-2 py-2 text-sm focus:border-[var(--accent)] focus:ring-[var(--accent)]" placeholder="Neue erwartete Einnahme" required>
+                                    <select name="account_id" form="{{ $incomeFormId }}" class="w-full sm:w-auto border border-transparent bg-white/60 px-2 py-2 text-sm focus:border-[var(--accent)] focus:ring-[var(--accent)]" required>
                                         @foreach ($forecastAccounts as $account)
                                             <option value="{{ $account->id }}">{{ $account->name }}</option>
                                         @endforeach
@@ -274,9 +277,9 @@
                                 </div>
                             </td>
                             <td class="py-2 text-right tabular-nums">
-                                <div class="flex items-center justify-end gap-2">
-                                    <input type="number" step="0.01" name="amount" form="{{ $incomeFormId }}" class="w-28 border border-transparent bg-white/60 px-2 py-1 text-sm text-right tabular-nums focus:border-[var(--accent)] focus:ring-[var(--accent)]" placeholder="0.00" required>
-                                    <button type="submit" form="{{ $incomeFormId }}" class="px-2 py-1 bg-[var(--accent)] text-white rounded text-xs">+</button>
+                                <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2">
+                                    <input type="number" step="0.01" name="amount" form="{{ $incomeFormId }}" class="w-full sm:w-28 border border-transparent bg-white/60 px-2 py-2 text-sm text-right tabular-nums focus:border-[var(--accent)] focus:ring-[var(--accent)]" placeholder="0.00" required>
+                                    <button type="submit" form="{{ $incomeFormId }}" class="w-full sm:w-auto px-3 py-2 bg-[var(--accent)] text-white rounded text-xs font-semibold">Hinzufügen</button>
                                 </div>
                             </td>
                         </x-inline-entry-row>

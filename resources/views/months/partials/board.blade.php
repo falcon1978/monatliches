@@ -83,7 +83,7 @@
     $resultBarClass = $resultIsNegative
         ? 'bg-gradient-to-r from-red-200 via-red-100 to-red-200 text-red-800 border border-red-200/70 dark:from-red-900/40 dark:via-red-900/20 dark:to-red-900/40 dark:text-red-200 dark:border-red-700/60'
         : 'bg-gradient-to-r from-emerald-200 via-emerald-100 to-emerald-200 text-emerald-900 border border-emerald-200/70 dark:from-emerald-900/40 dark:via-emerald-900/20 dark:to-emerald-900/40 dark:text-emerald-200 dark:border-emerald-700/60';
-    $hideWorkdayMetrics = auth()->user()?->employment_type === 'self_employed';
+    $hideWorkdayMetrics = auth()->user()?->employment_type === 'employed';
 @endphp
 
 <div class="space-y-4" x-data="{ entriesOpen: {{ ($entriesOpen ?? false) ? 'true' : 'false' }}, editing: false }" x-init="if (entriesOpen) { $nextTick(() => $refs.entriesSection?.scrollIntoView({ behavior: 'smooth', block: 'start' })) }">

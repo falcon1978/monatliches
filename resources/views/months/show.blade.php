@@ -5,7 +5,7 @@
         );
     @endphp
     <div class="py-6">
-        <div class="w-full px-4 sm:px-6 lg:px-10 space-y-4">
+        <div class="w-full px-[5px] sm:px-6 lg:px-10 space-y-4">
             @if ($errors->any())
                 <div class="border border-red-200 bg-red-50 text-red-800 p-3 text-sm accent-box">
                     {{ $errors->first() }}

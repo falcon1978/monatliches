@@ -77,10 +77,9 @@ class MonthMetricsService
             }
         }
 
-        $balanceIncome = $this->balanceIncome($targetMonth);
-        $sumResults = $carryOver + $balanceIncome;
+        $sumResults = $carryOver;
         foreach ($months as $month) {
-            $sumResults += $this->calculate($month, null, false)['result'];
+            $sumResults += $this->calculate($month, null, $month->is_current)['result'];
         }
 
         $workdays = $this->countWorkdaysBetween($today, $targetMonth->date_to->copy()->startOfDay());

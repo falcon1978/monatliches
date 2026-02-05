@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
 class UpdateFeedService
@@ -43,7 +44,7 @@ class UpdateFeedService
             throw new RuntimeException('Update-Feed ist ungültig.');
         }
 
-        $current = config('update.current_version', '0.0.0');
+        $current = $this->currentVersion();
         $latest = (string) ($payload['version'] ?? '');
         if ($latest === '') {
             throw new RuntimeException('Update-Feed enthält keine Version.');
@@ -60,5 +61,21 @@ class UpdateFeedService
             'changelog' => $payload['changelog'] ?? null,
             'released_at' => $payload['released_at'] ?? null,
         ];
+    }
+
+    public function currentVersion(): string
+    {
+        try {
+            if (Storage::disk('local')->exists('installed.lock')) {
+                $payload = json_decode(Storage::disk('local')->get('installed.lock'), true);
+                if (is_array($payload) && ! empty($payload['version'])) {
+                    return (string) $payload['version'];
+                }
+            }
+        } catch (\Throwable) {
+            // ignore and fall back
+        }
+
+        return config('update.current_version', '0.0.0');
     }
 }

@@ -8,6 +8,7 @@ use App\Services\UpdateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 use Throwable;
 
@@ -28,6 +29,10 @@ class UpdateController extends Controller
 
         return view('admin.update', [
             'updateInfo' => $info,
+            'installedVersion' => $this->feedService->currentVersion(),
+            'updateLog' => Storage::disk('local')->exists('update/update.log')
+                ? Storage::disk('local')->get('update/update.log')
+                : null,
         ]);
     }
 
@@ -81,6 +86,7 @@ class UpdateController extends Controller
         }
 
         File::put($lockPath, now()->toIso8601String());
+        Storage::disk('local')->put('update/update.log', '['.now()->toDateTimeString().'] Update gestartet.');
 
         try {
             $updateDir = storage_path('app/update');
@@ -91,6 +97,7 @@ class UpdateController extends Controller
 
             $zipFullPath = $updateDir.'/package.zip';
             $uploaded->move($updateDir, 'package.zip');
+            Storage::disk('local')->append('update/update.log', '['.now()->toDateTimeString().'] ZIP gespeichert.');
 
             if (! file_exists($zipFullPath) || filesize($zipFullPath) === 0) {
                 throw new RuntimeException('Upload ist leer oder konnte nicht gespeichert werden.');
@@ -99,6 +106,7 @@ class UpdateController extends Controller
             app(UpdateService::class)->applyZip($zipFullPath);
         } catch (Throwable $exception) {
             Log::error('Updater failed.', ['error' => $exception->getMessage()]);
+            Storage::disk('local')->append('update/update.log', '['.now()->toDateTimeString().'] Fehler: '.$exception->getMessage());
             return back()->withErrors(['update' => 'Update fehlgeschlagen. Bitte Logs prüfen.']);
         } finally {
             File::delete($lockPath);

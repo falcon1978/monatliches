@@ -38,8 +38,11 @@ Wenn die App unter `https://example.com/budget` läuft, muss `APP_URL` genau so 
 
 ## Updates
 
-Im Admin-Bereich unter **Update** kann ein neues `monatliches-dist-vX.Y.Z.zip` hochgeladen werden.
-Dabei `.env` und `storage/` behalten. Danach ggf. Migrationen ausführen (`php artisan migrate --force`).
+1. Neues `monatliches-dist-vX.Y.Z.zip` herunterladen.
+2. Im Admin-Bereich unter **Update** das ZIP hochladen.
+3. Das Update wird direkt nach dem Upload installiert.
+
+Dabei `.env` und `storage/` behalten. Migrationen werden beim Update automatisch ausgeführt.
 
 ## Release-/Dist-Konzept
 

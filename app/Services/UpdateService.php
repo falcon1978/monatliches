@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
 use ZipArchive;
@@ -12,6 +13,7 @@ class UpdateService
 {
     public function applyZip(string $zipFullPath): void
     {
+        $this->logStep('Update gestartet.');
         $tempRoot = storage_path('app/update/'.Str::uuid()->toString());
         File::ensureDirectoryExists($tempRoot);
 
@@ -28,12 +30,22 @@ class UpdateService
             throw new RuntimeException('ZIP konnte nicht entpackt werden.');
         }
         $zip->close();
+        $this->logStep('ZIP entpackt.');
 
         $sourceRoot = $this->detectSourceRoot($extractPath);
+        $this->logStep('Quellverzeichnis erkannt: '.$sourceRoot);
         $this->applyUpdate($sourceRoot, base_path());
+        $this->logStep('Dateien kopiert.');
 
         Artisan::call('migrate', ['--force' => true]);
+        $this->logStep('Migrationen ausgeführt.');
+        $this->logOutput(Artisan::output());
         Artisan::call('optimize:clear');
+        $this->logStep('Caches geleert.');
+        $this->logOutput(Artisan::output());
+
+        $this->refreshInstalledVersion();
+        $this->logStep('Installierte Version aktualisiert.');
     }
 
     private function zipOpenErrorMessage(int $code): string
@@ -157,5 +169,58 @@ class UpdateService
         }
 
         return false;
+    }
+
+    private function refreshInstalledVersion(): void
+    {
+        $version = null;
+        $payload = null;
+
+        $latestPath = base_path('updates/latest.json');
+        if (file_exists($latestPath)) {
+            $payload = json_decode(File::get($latestPath), true);
+            if (is_array($payload) && ! empty($payload['version'])) {
+                $version = (string) $payload['version'];
+            }
+        }
+
+        if (! $version) {
+            $version = config('app.version', '1.0.0');
+        }
+
+        Storage::disk('local')->put(
+            'installed.lock',
+            json_encode([
+                'version' => $version,
+                'installed_at' => now()->toIso8601String(),
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+        );
+    }
+
+    private function logStep(string $message): void
+    {
+        Storage::disk('local')->append(
+            'update/update.log',
+            '['.now()->toDateTimeString().'] '.$message
+        );
+    }
+
+    private function logOutput(?string $output): void
+    {
+        if (! $output) {
+            return;
+        }
+
+        $lines = preg_split('/\r?\n/', trim($output));
+        if (! $lines) {
+            return;
+        }
+
+        foreach ($lines as $line) {
+            if ($line === '') {
+                continue;
+            }
+            $this->logStep($line);
+        }
     }
 }

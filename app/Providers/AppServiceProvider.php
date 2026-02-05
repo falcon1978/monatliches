@@ -48,6 +48,7 @@ class AppServiceProvider extends ServiceProvider
             }
 
             $months = Month::forUser($user)
+                ->visible()
                 ->orderBy('date_from')
                 ->get(['id', 'name', 'date_from', 'date_to']);
 

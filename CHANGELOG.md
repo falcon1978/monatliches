@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.3.0 - 2026-02-05
+- Monatsübersicht: kumulierte Kennzahlen, Dark-Mode-Hover angepasst.
+- Monat: Archivieren (Resultat 0.00, vergangen, nicht aktuell) mit Folge-Januar.
+- Navigation/Month-Band: neues Layout, mobile optimiert.
+- Kontostände: prominenter und volle Breite.
+
 ## v1.2.0 - 2026-02-05
 - Profil: Beschäftigungstyp (Angestellt/Selbstständig).
 - Kumuliert: Arbeitszeit-Kennzahlen bei Selbstständigen ausblenden.

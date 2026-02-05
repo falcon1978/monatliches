@@ -19,20 +19,25 @@ class MonthController extends Controller
     {
         $this->authorize('viewAny', Month::class);
 
-        $months = Month::forUser(request()->user())
+        $user = request()->user();
+        $months = Month::forUser($user)
+            ->visible()
             ->orderBy('date_from')
             ->get();
 
         $monthCards = $months->map(function (Month $month) use ($metricsService) {
+            $cumulative = $metricsService->cumulativeFromToday($month);
             return [
                 'month' => $month,
-                'metrics' => $metricsService->calculate($month, null, false),
+                'metrics' => $metricsService->calculate($month, null, $month->is_current),
+                'cumulative' => $cumulative,
             ];
         });
 
         return view('months.index', [
             'months' => $months,
             'monthCards' => $monthCards,
+            'isSelfEmployed' => $user?->isSelfEmployed() ?? false,
         ]);
     }
 
@@ -41,6 +46,7 @@ class MonthController extends Controller
         $this->authorize('create', Month::class);
 
         $months = Month::forUser($request->user())
+            ->visible()
             ->orderBy('date_from', 'desc')
             ->get();
 
@@ -149,12 +155,73 @@ class MonthController extends Controller
         return back()->with('status', "Wiederkehrende Posten übernommen: {$count}.");
     }
 
+    public function archive(Request $request, Month $month, MonthMetricsService $metricsService): RedirectResponse
+    {
+        $this->authorize('update', $month);
+
+        $user = $request->user();
+        if ($month->user_id !== $user->id) {
+            abort(403);
+        }
+
+        if ($month->archived_at) {
+            return back()->withErrors(['archive' => 'Monat ist bereits archiviert.']);
+        }
+
+        $baseMetrics = $metricsService->calculate($month, null, false);
+        $result = (float) ($baseMetrics['result'] ?? 0);
+
+        if (! $this->isArchiveEligible($month, $result)) {
+            return back()->withErrors(['archive' => 'Monat kann nicht archiviert werden.']);
+        }
+
+        $month->archived_at = now();
+        $month->save();
+
+        $createdNextJanuary = false;
+        if ($month->date_from->month === 1) {
+            $nextStart = $month->date_from->copy()->addYear()->startOfMonth();
+            $nextEnd = $nextStart->copy()->endOfMonth();
+
+            $exists = Month::forUser($user)
+                ->whereDate('date_from', $nextStart->toDateString())
+                ->exists();
+
+            if (! $exists) {
+                $name = ucfirst(str_replace('.', '', $nextStart->locale(app()->getLocale())->translatedFormat('M Y')));
+
+                $nextMonth = Month::create([
+                    'user_id' => $user->id,
+                    'name' => $name,
+                    'date_from' => $nextStart->toDateString(),
+                    'date_to' => $nextEnd->toDateString(),
+                    'daily_living_cost' => $month->daily_living_cost,
+                    'is_current' => false,
+                ]);
+
+                $this->importRecurringTemplates($nextMonth);
+                $createdNextJanuary = true;
+            }
+        }
+
+        $message = $createdNextJanuary
+            ? 'Monat archiviert. Neuer Januar erstellt.'
+            : 'Monat archiviert.';
+
+        return redirect()
+            ->route('months.index')
+            ->with('status', $message);
+    }
+
     public function createNext(Request $request)
     {
         $this->authorize('create', Month::class);
 
         $user = $request->user();
-        $lastMonth = Month::forUser($user)->orderBy('date_from', 'desc')->first();
+        $lastMonth = Month::forUser($user)
+            ->visible()
+            ->orderBy('date_from', 'desc')
+            ->first();
 
         if (! $lastMonth) {
             return redirect()->route('months.create');
@@ -228,6 +295,7 @@ class MonthController extends Controller
 
         $previousStart = $month->date_from->copy()->subMonthNoOverflow()->startOfMonth();
         $previousMonth = Month::forUser($user)
+            ->visible()
             ->whereDate('date_from', $previousStart->toDateString())
             ->first();
 
@@ -246,6 +314,7 @@ class MonthController extends Controller
 
         $targetStart = $month->date_from->copy()->addMonthNoOverflow()->startOfMonth();
         $targetMonth = Month::forUser($user)
+            ->visible()
             ->whereDate('date_from', $targetStart->toDateString())
             ->first();
 
@@ -331,6 +400,7 @@ class MonthController extends Controller
 
         $previousStart = $month->date_from->copy()->subMonthNoOverflow()->startOfMonth();
         $previousMonth = Month::forUser($user)
+            ->visible()
             ->whereDate('date_from', $previousStart->toDateString())
             ->first();
 
@@ -392,6 +462,24 @@ class MonthController extends Controller
         $previousMonth->save();
 
         return back()->with('status', "{$moved} Posten nach {$previousMonth->name} zurückgesetzt. Aktueller Monat aktualisiert.");
+    }
+
+    private function isArchiveEligible(Month $month, float $result): bool
+    {
+        if ($month->archived_at) {
+            return false;
+        }
+
+        if ($month->is_current) {
+            return false;
+        }
+
+        $today = now()->startOfDay();
+        if (! $month->date_to->lt($today)) {
+            return false;
+        }
+
+        return abs(round($result, 2)) < 0.01;
     }
 
     private function copyEntriesFromMonth(Month $sourceMonth, Month $targetMonth): void
@@ -535,6 +623,10 @@ class MonthController extends Controller
         $metrics = $includeBalanceInResult
             ? $metricVariants['with_balance']
             : $metricVariants['without_balance'];
+        $archiveEligible = $this->isArchiveEligible(
+            $month,
+            (float) ($metricVariants['without_balance']['result'] ?? 0)
+        );
         $cumulative = $metricsService->cumulativeFromToday($month);
         $metrics['cumulative_result'] = $cumulative['result_sum'];
         $metrics['cumulative_workdays'] = $cumulative['workdays_sum'];
@@ -581,6 +673,7 @@ class MonthController extends Controller
         $entriesOpen = $entriesOpen || $hasFilters;
 
         $nextMonth = Month::forUser($user)
+            ->visible()
             ->whereDate(
                 'date_from',
                 $month->date_from->copy()->addMonthNoOverflow()->startOfMonth()->toDateString()
@@ -588,6 +681,7 @@ class MonthController extends Controller
             ->first();
 
         $prevMonth = Month::forUser($user)
+            ->visible()
             ->whereDate(
                 'date_from',
                 $month->date_from->copy()->subMonthNoOverflow()->startOfMonth()->toDateString()
@@ -630,6 +724,7 @@ class MonthController extends Controller
             'revertCount' => $revertCount,
             'canRevert' => $revertCount > 0,
             'pendingTemplates' => $this->countPendingTemplates($month),
+            'canArchive' => $archiveEligible,
         ];
     }
 
@@ -653,7 +748,6 @@ class MonthController extends Controller
 
         $existingEntries = Entry::query()
             ->where('month_id', $month->id)
-            ->whereNull('recurring_template_id')
             ->whereIn('type', $templates->pluck('kind')->unique())
             ->get(['type', 'description', 'amount']);
 

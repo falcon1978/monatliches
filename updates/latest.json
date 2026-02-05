@@ -1,7 +1,7 @@
 {
-  "version": "1.2.0",
+  "version": "1.3.0",
   "released_at": "2026-02-05",
-  "download_url": "https://github.com/falcon1978/monatliches/releases/download/1.2.0/monatliches-dist-v1.2.0.zip",
-  "sha256": "4be3c1e11eacb7e463799300e646bf05b4d7985873c26e3512eb2bba56734ebf",
-  "changelog": "Profil: Beschäftigungsart (Angestellt/Selbstständig) und Ausblenden der Arbeitszeit-Kennzahlen."
+  "download_url": "https://github.com/falcon1978/monatliches/releases/download/1.3.0/monatliches-dist-v1.3.0.zip",
+  "sha256": "dbd3e772fad40e50a3a0f3bac6e3d3d44f06b9585056352b445fdd3edb470abc",
+  "changelog": "Navigation/Month-Band überarbeitet, Archivieren für Monate mit 0.00 Ergebnis, Übersicht mit kumulierten Kennzahlen."
 }

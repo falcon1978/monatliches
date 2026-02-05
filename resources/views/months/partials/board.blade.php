@@ -142,6 +142,15 @@
                             </button>
                         </form>
                     @endif
+                    @if ($canArchive ?? false)
+                        <form method="POST" action="{{ route('months.archive', $month) }}" onsubmit="return confirm('Monat archivieren?');">
+                            @csrf
+                            @method('PATCH')
+                            <button type="submit" class="inline-flex items-center gap-1 rounded-full border border-gray-300 bg-white/80 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-gray-600 transition hover:opacity-80">
+                                Archivieren
+                            </button>
+                        </form>
+                    @endif
                 </div>
             </div>
             @can('update', $month)
@@ -158,25 +167,25 @@
             @endcan
             @if ($balanceAccounts->isNotEmpty())
                 <div class="mt-3">
-                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-600">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
                         <div class="text-xs uppercase tracking-[0.2em] text-gray-500">Kontostände</div>
-                        <div class="text-xs text-gray-500">Summe CHF {{ $fmt($balanceSum) }}</div>
+                        <div class="text-sm font-semibold text-gray-800 dark:text-slate-100">Summe CHF {{ $fmt($balanceSum) }}</div>
                     </div>
-                    <div class="mt-2 flex flex-wrap gap-2">
+                    <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
                         @foreach ($balanceAccounts as $account)
                             @php
                                 $balance = $balanceAmounts[$account->id] ?? 0;
                                 $balanceClass = $balance < 0 ? 'text-red-700' : 'text-gray-900';
                                 $balanceInput = number_format((float) $balance, 2, '.', '');
                             @endphp
-                            <div class="min-w-[12rem] rounded-lg border accent-box bg-white/80 dark:bg-slate-900/70 px-2 py-1">
+                            <div class="w-full rounded-lg border accent-box bg-white/80 dark:bg-slate-900/70 px-3 py-2">
                                 <div class="text-xs uppercase tracking-wide text-gray-500">{{ $account->name }}</div>
                                 <div class="mt-1 flex items-center justify-between gap-2">
                                     <div x-data="{ editing: false, value: '{{ $balanceInput }}' }" @click.outside="editing = false" class="w-full">
                                         <form method="POST" action="{{ route('months.balances.update', [$month, $account]) }}" class="flex items-center justify-between gap-2">
                                             @csrf
                                             @method('PATCH')
-                                            <button type="button" x-show="!editing" @click="editing = true; $nextTick(() => $refs.input.focus())" class="text-right tabular-nums font-semibold {{ $balanceClass }}">
+                                            <button type="button" x-show="!editing" @click="editing = true; $nextTick(() => $refs.input.focus())" class="text-right tabular-nums text-lg font-semibold {{ $balanceClass }}">
                                                 {{ $fmt($balance) }}
                                             </button>
                                             <input x-ref="input" x-show="editing" x-cloak type="number" step="0.01" name="amount" x-model="value" class="w-24 border border-gray-300 rounded px-2 py-1 text-sm text-right tabular-nums focus:border-[var(--accent)] focus:ring-[var(--accent)]" @keydown.enter.stop.prevent="$el.form.submit()" @keydown.escape="editing = false">
@@ -246,13 +255,17 @@
                 </thead>
                 <tbody data-sortable data-order-url="{{ route('months.entries.order', $month) }}" data-type="income">
                     @if ($forecastAccounts->isNotEmpty())
-                        <tr class="border-t border-green-200 text-xs uppercase tracking-wide text-green-900 dark:text-emerald-200">
+                        <tr class="border-t border-green-200 text-[11px] uppercase tracking-wide text-emerald-700/90 dark:text-emerald-200/90">
                             <td class="pt-2 pb-1">
-                                <div class="flex items-center gap-2">
-                                    <span>Einnahmen erwartet</span>
-                                    <button type="button" class="inline-flex h-5 w-5 items-center justify-center rounded border border-[var(--accent)] bg-white/80 text-xs font-semibold text-[var(--accent)] transition hover:text-[var(--accent)]" :class="addExpected ? 'border-[var(--accent)] bg-[var(--accent)] text-white' : ''" @click="addExpected = !addExpected" title="Erwartete Einnahme erfassen" aria-label="Erwartete Einnahme erfassen">
-                                        +
-                                    </button>
+                                <div class="flex flex-col gap-0.5">
+                                    <div class="flex items-center gap-2">
+                                        <span>Einnahmen erwartet</span>
+                                        <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-200">Zusammenfassung</span>
+                                        <button type="button" class="inline-flex h-5 w-5 items-center justify-center rounded border border-[var(--accent)] bg-white/80 text-xs font-semibold text-[var(--accent)] transition hover:text-[var(--accent)]" :class="addExpected ? 'border-[var(--accent)] bg-[var(--accent)] text-white' : ''" @click="addExpected = !addExpected" title="Erwartete Einnahme erfassen" aria-label="Erwartete Einnahme erfassen">
+                                            +
+                                        </button>
+                                    </div>
+                                    <div class="text-[10px] normal-case tracking-normal text-gray-500">Summe aus Forecast‑Konten und wiederkehrenden Einnahmen.</div>
                                 </div>
                             </td>
                             <td class="pt-2 pb-1 text-right"></td>

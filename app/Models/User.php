@@ -23,6 +23,7 @@ class User extends Authenticatable
         'password',
         'is_admin',
         'accent_color',
+        'employment_type',
     ];
 
     /**
@@ -47,6 +48,11 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_admin' => 'boolean',
         ];
+    }
+
+    public function isSelfEmployed(): bool
+    {
+        return $this->employment_type === 'self_employed';
     }
 
     public function accounts()

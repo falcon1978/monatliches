@@ -31,6 +31,7 @@ class UserFactory extends Factory
             'remember_token' => Str::random(10),
             'is_admin' => false,
             'accent_color' => '#2f6f3e',
+            'employment_type' => 'employed',
         ];
     }
 

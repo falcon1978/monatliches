@@ -14,6 +14,7 @@ class Month extends Model
         'date_to',
         'daily_living_cost',
         'is_current',
+        'archived_at',
     ];
 
     protected function casts(): array
@@ -23,6 +24,7 @@ class Month extends Model
             'date_to' => 'date',
             'daily_living_cost' => 'decimal:2',
             'is_current' => 'boolean',
+            'archived_at' => 'datetime',
         ];
     }
 
@@ -39,6 +41,11 @@ class Month extends Model
     public function scopeForUser($query, User $user)
     {
         return $query->where('user_id', $user->id);
+    }
+
+    public function scopeVisible($query)
+    {
+        return $query->whereNull('archived_at');
     }
 
     public function remainingDaysForLivingCost(?Carbon $today = null): int

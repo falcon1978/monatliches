@@ -57,6 +57,15 @@
         </div>
 
         <div>
+            <x-input-label for="employment_type" value="Beschäftigung" />
+            <select id="employment_type" name="employment_type" class="mt-1 block w-full border-gray-300 focus:border-[var(--accent)] focus:ring-[var(--accent)] rounded-md shadow-sm">
+                <option value="employed" @selected(old('employment_type', $user->employment_type ?? 'employed') === 'employed')>Angestellt</option>
+                <option value="self_employed" @selected(old('employment_type', $user->employment_type ?? 'employed') === 'self_employed')>Selbstständig</option>
+            </select>
+            <x-input-error class="mt-2" :messages="$errors->get('employment_type')" />
+        </div>
+
+        <div>
             <x-input-label for="accent_color" value="Akzentfarbe (Hell + Dunkel optimiert)" />
             <div class="mt-2 flex flex-wrap items-center gap-3">
                 <input type="hidden" id="accent_color" name="accent_color" x-model="accent">

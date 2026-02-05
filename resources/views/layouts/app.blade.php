@@ -34,6 +34,7 @@
             </div>
 
             <div class="relative">
+                @include('layouts.navigation')
                 @if (isset($monthBand))
                     @include('layouts.month-band', ['monthBand' => $monthBand])
                 @endif

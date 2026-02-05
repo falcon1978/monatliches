@@ -45,6 +45,8 @@ Route::middleware('installed')->group(function () {
             ->name('months.next');
         Route::patch('months/{month}/current', [MonthController::class, 'setCurrent'])
             ->name('months.current');
+        Route::patch('months/{month}/archive', [MonthController::class, 'archive'])
+            ->name('months.archive');
         Route::post('months/{month}/rollover', [MonthController::class, 'rolloverOpenEntries'])
             ->name('months.rollover');
         Route::post('months/{month}/rollover-revert', [MonthController::class, 'revertRollover'])

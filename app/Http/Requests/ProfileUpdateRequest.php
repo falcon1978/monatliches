@@ -31,6 +31,7 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
+            'employment_type' => ['required', Rule::in(['employed', 'self_employed'])],
             'accent_color' => [
                 'nullable',
                 'regex:/^#[0-9a-fA-F]{6}$/',

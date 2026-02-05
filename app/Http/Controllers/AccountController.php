@@ -22,7 +22,10 @@ class AccountController extends Controller
             ->orderBy('name')
             ->get();
 
-        $months = Month::forUser($user)->orderBy('date_from')->get();
+        $months = Month::forUser($user)
+            ->visible()
+            ->orderBy('date_from')
+            ->get();
         $currentMonth = $months->firstWhere('is_current', true);
 
         if (! $currentMonth) {

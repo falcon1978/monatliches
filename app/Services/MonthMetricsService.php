@@ -40,6 +40,7 @@ class MonthMetricsService
     {
         $today = now()->startOfDay();
         $currentMonth = Month::forUser($targetMonth->user)
+            ->visible()
             ->where('is_current', true)
             ->first();
 
@@ -54,6 +55,7 @@ class MonthMetricsService
         $sumStart = $currentMonth ? $currentMonth->date_from->copy()->startOfDay() : $today;
 
         $months = Month::forUser($targetMonth->user)
+            ->visible()
             ->whereDate('date_to', '>=', $sumStart->toDateString())
             ->whereDate('date_from', '<=', $targetMonth->date_to->toDateString())
             ->orderBy('date_from')
@@ -73,6 +75,7 @@ class MonthMetricsService
         if (! $hasBaseBalance) {
             $firstMonth = $months->first();
             $carryOverMonths = Month::forUser($targetMonth->user)
+                ->visible()
                 ->whereDate('date_to', '<', $firstMonth->date_from->toDateString())
                 ->orderBy('date_from')
                 ->get();

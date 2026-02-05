@@ -62,10 +62,6 @@
                     <x-slot name="content">
                         <x-dropdown-link :href="route('accounts.index')">Konten</x-dropdown-link>
                         <x-dropdown-link :href="route('recurring-templates.index')">Wiederkehrende Posten</x-dropdown-link>
-                        @can('viewAny', App\Models\User::class)
-                            <x-dropdown-link :href="route('admin.users.index')">Admin</x-dropdown-link>
-                            <x-dropdown-link :href="route('admin.update.show')">Update</x-dropdown-link>
-                        @endcan
                     </x-slot>
                 </x-dropdown>
 
@@ -87,6 +83,10 @@
                         <x-dropdown-link :href="route('profile.edit')">
                             Profil
                         </x-dropdown-link>
+                        @can('viewAny', App\Models\User::class)
+                            <x-dropdown-link :href="route('admin.users.index')">Admin</x-dropdown-link>
+                            <x-dropdown-link :href="route('admin.update.show')">Update</x-dropdown-link>
+                        @endcan
 
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf

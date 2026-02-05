@@ -106,6 +106,7 @@ class UpdateService
             '.gitattributes',
             '.editorconfig',
             '.gitignore',
+            'updates',
             'tools',
         ];
 

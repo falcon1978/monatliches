@@ -76,6 +76,23 @@ class UpdateFeedService
             // ignore and fall back
         }
 
-        return config('update.current_version', '0.0.0');
+        $configVersion = (string) config('app.version', config('update.current_version', '0.0.0'));
+        if ($configVersion === '') {
+            $configVersion = '0.0.0';
+        }
+
+        try {
+            Storage::disk('local')->put(
+                'installed.lock',
+                json_encode([
+                    'version' => $configVersion,
+                    'installed_at' => now()->toIso8601String(),
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+            );
+        } catch (\Throwable) {
+            // ignore write errors
+        }
+
+        return $configVersion;
     }
 }

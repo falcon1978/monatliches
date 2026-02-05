@@ -4,7 +4,7 @@
     'bgClass' => 'bg-white',
 ])
 
-<div {{ $attributes->merge(['class' => 'section-table border accent-box rounded-lg overflow-hidden ' . $bgClass]) }}>
+<div {{ $attributes->merge(['class' => 'section-table border-0 sm:border accent-box rounded-none sm:rounded-lg overflow-hidden ' . $bgClass]) }}>
     <style>
         .section-table th:last-child,
         .section-table td:last-child {

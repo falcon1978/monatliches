@@ -1,7 +1,7 @@
 {
-  "version": "1.1.0",
-  "released_at": "2026-02-04",
-  "download_url": "https://github.com/falcon1978/monatliches/releases/download/1.1.0/monatliches-dist-v1.1.0.zip",
-  "sha256": "81f738a4c49d78a70a5f6764bfd9d6723aea4a275a5b886ec7f77b79c440104d",
-  "changelog": "Aktueller Monat + Kontostand-Logik, Übertrag mit Herkunfts-Badges und Rückgängig-Funktion."
+  "version": "1.2.0",
+  "released_at": "2026-02-05",
+  "download_url": "https://github.com/falcon1978/monatliches/releases/download/1.2.0/monatliches-dist-v1.2.0.zip",
+  "sha256": "8f881db51469aeb3c001086285318971f3a682b9f9526f5b193154e009d5443a",
+  "changelog": "Profil: Beschäftigungsart (Angestellt/Selbstständig) und Ausblenden der Arbeitszeit-Kennzahlen."
 }

@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.2.0 - 2026-02-05
+- Profil: Beschäftigungstyp (Angestellt/Selbstständig).
+- Kumuliert: Arbeitszeit-Kennzahlen bei Selbstständigen ausblenden.
+
 ## v1.1.0 - 2026-02-04
 
 - Kontostände sind global pro Konto und werden in der Monatsansicht als Kopfzeile geführt.

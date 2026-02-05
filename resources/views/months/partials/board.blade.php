@@ -260,12 +260,10 @@
                                 <div class="flex flex-col gap-0.5">
                                     <div class="flex items-center gap-2">
                                         <span>Einnahmen erwartet</span>
-                                        <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-200">Zusammenfassung</span>
-                                        <button type="button" class="inline-flex h-5 w-5 items-center justify-center rounded border border-[var(--accent)] bg-white/80 text-xs font-semibold text-[var(--accent)] transition hover:text-[var(--accent)]" :class="addExpected ? 'border-[var(--accent)] bg-[var(--accent)] text-white' : ''" @click="addExpected = !addExpected" title="Erwartete Einnahme erfassen" aria-label="Erwartete Einnahme erfassen">
+                                        <button type="button" class="inline-flex h-5 w-7 items-center justify-center rounded border border-[var(--accent)] bg-white/80 text-xs font-semibold text-[var(--accent)] transition hover:text-[var(--accent)]" :class="addExpected ? 'border-[var(--accent)] bg-[var(--accent)] text-white' : ''" @click="addExpected = !addExpected" title="Erwartete Einnahme erfassen" aria-label="Erwartete Einnahme erfassen">
                                             +
                                         </button>
                                     </div>
-                                    <div class="text-[10px] normal-case tracking-normal text-gray-500">Summe aus Forecast‑Konten und wiederkehrenden Einnahmen.</div>
                                 </div>
                             </td>
                             <td class="pt-2 pb-1 text-right"></td>

@@ -2,6 +2,6 @@
   "version": "1.4.1",
   "released_at": "2026-02-05",
   "download_url": "https://github.com/falcon1978/monatliches/releases/download/1.4.1/monatliches-dist-v1.4.1.zip",
-  "sha256": "3cf713c58fa36ac2e5d0b1a89fddef7b99fd9d89905af3cb942c9dab27e74ed1",
+  "sha256": "27caf6d7f0644b817a8b233226d08f1853ab80cce28a45e0d8d311c192d348f3",
   "changelog": "Navigation/Month-Band überarbeitet, Archivieren für Monate mit 0.00 Ergebnis, Übersicht mit kumulierten Kennzahlen."
 }

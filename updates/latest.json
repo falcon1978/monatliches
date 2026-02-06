@@ -1,7 +1,7 @@
 {
-  "version": "1.6.0",
+  "version": "1.6.1",
   "released_at": "2026-02-06",
-  "download_url": "https://github.com/falcon1978/monatliches/releases/download/1.6.0/monatliches-dist-v1.6.0.zip",
-  "sha256": "77870600d221b83cab294203726f22d0b7d09f08789c310dfbe56d0124636a26",
-  "changelog": "Lebensunterhalt des Folgemonats getrennt ausweisen; Ferienhinweis erscheint im Vormonat."
+  "download_url": "https://github.com/falcon1978/monatliches/releases/download/1.6.1/monatliches-dist-v1.6.1.zip",
+  "sha256": "512897102013e94351ecfc696708bda9019001854b4345591daea95175b89071",
+  "changelog": "Lebensunterhalt des Folgemonats ab Heute anzeigen, wenn der aktuell markierte Monat in der Vergangenheit liegt."
 }

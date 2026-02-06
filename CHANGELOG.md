@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.6.1 - 2026-02-06
+- Wenn der aktuelle Monat bereits vergangen ist: nächster Monat ab heute berechnen.
+
 ## v1.6.0 - 2026-02-06
 - Lebensunterhalt: nächste Monatsposten für alle Benutzer, getrennt nach Ferienanteil.
 - Ferienhinweise erscheinen zusätzlich im Vormonat.

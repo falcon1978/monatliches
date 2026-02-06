@@ -24,6 +24,7 @@
     $nextMonthLivingCost = (float) ($metrics['next_month_living_cost'] ?? 0);
     $nextMonthLivingCostBase = (float) ($metrics['next_month_living_cost_base'] ?? 0);
     $nextMonthHolidayCustomLivingCost = (float) ($metrics['next_month_holiday_custom_living_cost'] ?? 0);
+    $nextMonthLivingCostFromToday = (bool) ($metrics['next_month_living_cost_from_today'] ?? false);
     $includeCurrentLivingCost = (bool) ($metrics['include_current_living_cost'] ?? true);
     $holidays = $holidays ?? collect();
     $nextMonthHolidays = $nextMonthHolidays ?? collect();
@@ -969,7 +970,9 @@
                                 <div class="flex flex-col">
                                     <span>Lebensunterhalt nächster Monat</span>
                                     @if (! empty($nextMonth?->name))
-                                        <span class="text-[10px] text-gray-500">{{ $nextMonth->name }}</span>
+                                        <span class="text-[10px] text-gray-500">
+                                            {{ $nextMonth->name }}@if ($nextMonthLivingCostFromToday) · ab heute @endif
+                                        </span>
                                     @endif
                                 </div>
                             </td>
@@ -982,7 +985,9 @@
                                 <div class="flex flex-col">
                                     <span>Ferien-Lebensunterhalt nächster Monat</span>
                                     @if (! empty($nextMonth?->name))
-                                        <span class="text-[10px] text-gray-500">{{ $nextMonth->name }}</span>
+                                        <span class="text-[10px] text-gray-500">
+                                            {{ $nextMonth->name }}@if ($nextMonthLivingCostFromToday) · ab heute @endif
+                                        </span>
                                     @endif
                                 </div>
                             </td>

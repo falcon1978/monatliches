@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.6.6 - 2026-02-06
+- Update-Check: installierte Version robust aus mehreren Quellen ermitteln.
+- Update-Installer: Paketversion auch ohne aktuelle updates/latest.json erkennen.
+
 ## v1.6.5 - 2026-02-06
 - Update-Check: Installed-Version aus localem updates/latest.json ableiten.
 

@@ -1,7 +1,7 @@
 {
-  "version": "1.6.5",
+  "version": "1.6.6",
   "released_at": "2026-02-06",
-  "download_url": "https://github.com/falcon1978/monatliches/releases/download/1.6.5/monatliches-dist-v1.6.5.zip",
-  "sha256": "901a49e4db59f9b8abb1272d062b8453fc94b067e094c979021b84efbfde17dc",
-  "changelog": "Update-Check nutzt lokale updates/latest.json als installierte Version."
+  "download_url": "https://github.com/falcon1978/monatliches/releases/download/1.6.6/monatliches-dist-v1.6.6.zip",
+  "sha256": "08c0d69bb984376c278f97d260aa390169d1a25006c983ca2b279cdf5a836cd8",
+  "changelog": "Update-Check ermittelt die installierte Version robust aus Paketdateien."
 }

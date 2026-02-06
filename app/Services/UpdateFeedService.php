@@ -91,20 +91,24 @@ class UpdateFeedService
             $configVersion = '0.0.0';
         }
 
-        $packageVersion = null;
-        try {
-            $latestPath = base_path('updates/latest.json');
-            if (file_exists($latestPath)) {
-                $payload = json_decode(file_get_contents($latestPath), true);
-                if (is_array($payload) && ! empty($payload['version'])) {
-                    $packageVersion = (string) $payload['version'];
-                }
-            }
-        } catch (\Throwable) {
-            // ignore and fall back
-        }
+        $packageVersion = $this->readVersionFromLatestJson(base_path('updates/latest.json'));
+        $envExampleVersion = $this->readVersionFromEnvExample(base_path('.env.example'));
+        $changelogVersion = $this->readVersionFromChangelog(base_path('CHANGELOG.md'));
 
-        $effectiveVersion = $packageVersion ?: $configVersion ?: ($installedVersion ?? '0.0.0');
+        $candidates = array_filter([
+            $packageVersion,
+            $envExampleVersion,
+            $changelogVersion,
+            $configVersion,
+            $installedVersion,
+        ], static fn ($value) => is_string($value) && $value !== '');
+
+        $effectiveVersion = '0.0.0';
+        foreach ($candidates as $candidate) {
+            if (version_compare($candidate, $effectiveVersion, '>')) {
+                $effectiveVersion = $candidate;
+            }
+        }
 
         try {
             if ($installedVersion !== $effectiveVersion) {
@@ -121,5 +125,61 @@ class UpdateFeedService
         }
 
         return $effectiveVersion;
+    }
+
+    private function readVersionFromLatestJson(string $path): ?string
+    {
+        try {
+            if (! file_exists($path)) {
+                return null;
+            }
+            $payload = json_decode(file_get_contents($path), true);
+            if (! is_array($payload) || empty($payload['version'])) {
+                return null;
+            }
+            return (string) $payload['version'];
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function readVersionFromEnvExample(string $path): ?string
+    {
+        try {
+            if (! file_exists($path)) {
+                return null;
+            }
+            $contents = file_get_contents($path);
+            if ($contents === false) {
+                return null;
+            }
+            if (! preg_match('/^APP_VERSION\\s*=\\s*(.+)$/m', $contents, $matches)) {
+                return null;
+            }
+            $value = trim($matches[1]);
+            $value = trim($value, "\"' ");
+            return $value !== '' ? $value : null;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function readVersionFromChangelog(string $path): ?string
+    {
+        try {
+            if (! file_exists($path)) {
+                return null;
+            }
+            $contents = file_get_contents($path);
+            if ($contents === false) {
+                return null;
+            }
+            if (! preg_match('/^##\\s+v?([0-9]+\\.[0-9]+\\.[0-9]+)/m', $contents, $matches)) {
+                return null;
+            }
+            return $matches[1] ?? null;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 }

@@ -208,15 +208,37 @@ class UpdateService
     {
         $latestPath = $sourceRoot.'/updates/latest.json';
         if (! file_exists($latestPath)) {
-            return null;
+            $latestPath = null;
         }
 
-        $payload = json_decode(File::get($latestPath), true);
-        if (! is_array($payload) || empty($payload['version'])) {
-            return null;
+        if ($latestPath) {
+            $payload = json_decode(File::get($latestPath), true);
+            if (is_array($payload) && ! empty($payload['version'])) {
+                return (string) $payload['version'];
+            }
         }
 
-        return (string) $payload['version'];
+        $envExamplePath = $sourceRoot.'/.env.example';
+        if (file_exists($envExamplePath)) {
+            $contents = File::get($envExamplePath);
+            if (preg_match('/^APP_VERSION\\s*=\\s*(.+)$/m', $contents, $matches)) {
+                $value = trim($matches[1] ?? '');
+                $value = trim($value, "\"' ");
+                if ($value !== '') {
+                    return $value;
+                }
+            }
+        }
+
+        $changelogPath = $sourceRoot.'/CHANGELOG.md';
+        if (file_exists($changelogPath)) {
+            $contents = File::get($changelogPath);
+            if (preg_match('/^##\\s+v?([0-9]+\\.[0-9]+\\.[0-9]+)/m', $contents, $matches)) {
+                return $matches[1] ?? null;
+            }
+        }
+
+        return null;
     }
 
     private function logStep(string $message): void

@@ -1,7 +1,7 @@
 {
-  "version": "1.4.1",
-  "released_at": "2026-02-05",
-  "download_url": "https://github.com/falcon1978/monatliches/releases/download/1.4.1/monatliches-dist-v1.4.1.zip",
-  "sha256": "27caf6d7f0644b817a8b233226d08f1853ab80cce28a45e0d8d311c192d348f3",
-  "changelog": "Navigation/Month-Band überarbeitet, Archivieren für Monate mit 0.00 Ergebnis, Übersicht mit kumulierten Kennzahlen."
+  "version": "1.5.0",
+  "released_at": "2026-02-06",
+  "download_url": "https://github.com/falcon1978/monatliches/releases/download/1.5.0/monatliches-dist-v1.5.0.zip",
+  "sha256": "2e4134623e666581e0e97e9fc7bb83c48e5c7f40f2dcb95355e1f883c9e809c0",
+  "changelog": "Ferien-Logik mit Lebensunterhalt-Modi, Anzeige in Monatsübersicht und Monatsansicht, abgezogene Arbeitstage für Selbstständige."
 }

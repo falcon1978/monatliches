@@ -1,7 +1,7 @@
 {
-  "version": "1.6.4",
+  "version": "1.6.5",
   "released_at": "2026-02-06",
-  "download_url": "https://github.com/falcon1978/monatliches/releases/download/1.6.4/monatliches-dist-v1.6.4.zip",
-  "sha256": "8bf3bbe8ff760085ef1ddaa91ff3aa2fb4041f2852400acb7de20c5f641bc45b",
-  "changelog": "Update-Check aktualisiert installed.lock bei höherer APP_VERSION."
+  "download_url": "https://github.com/falcon1978/monatliches/releases/download/1.6.5/monatliches-dist-v1.6.5.zip",
+  "sha256": "901a49e4db59f9b8abb1272d062b8453fc94b067e094c979021b84efbfde17dc",
+  "changelog": "Update-Check nutzt lokale updates/latest.json als installierte Version."
 }

@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.6.5 - 2026-02-06
+- Update-Check: Installed-Version aus localem updates/latest.json ableiten.
+
 ## v1.6.4 - 2026-02-06
 - Update-Check: installed.lock wird aktualisiert, wenn APP_VERSION höher ist.
 

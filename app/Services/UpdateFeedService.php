@@ -91,10 +91,20 @@ class UpdateFeedService
             $configVersion = '0.0.0';
         }
 
-        $effectiveVersion = $installedVersion ?? $configVersion;
-        if ($installedVersion && version_compare($configVersion, $installedVersion, '>')) {
-            $effectiveVersion = $configVersion;
+        $packageVersion = null;
+        try {
+            $latestPath = base_path('updates/latest.json');
+            if (file_exists($latestPath)) {
+                $payload = json_decode(file_get_contents($latestPath), true);
+                if (is_array($payload) && ! empty($payload['version'])) {
+                    $packageVersion = (string) $payload['version'];
+                }
+            }
+        } catch (\Throwable) {
+            // ignore and fall back
         }
+
+        $effectiveVersion = $packageVersion ?: $configVersion ?: ($installedVersion ?? '0.0.0');
 
         try {
             if ($installedVersion !== $effectiveVersion) {

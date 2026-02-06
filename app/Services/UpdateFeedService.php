@@ -14,7 +14,16 @@ class UpdateFeedService
         $cacheKey = 'update.feed.info';
 
         if (Cache::has($cacheKey)) {
-            return Cache::get($cacheKey);
+            $cached = Cache::get($cacheKey);
+            if (is_array($cached) && ! empty($cached['current'])) {
+                $current = $this->currentVersion();
+                if ((string) $cached['current'] === $current) {
+                    return $cached;
+                }
+            } elseif (! is_array($cached)) {
+                return $cached;
+            }
+            Cache::forget($cacheKey);
         }
 
         try {
@@ -65,11 +74,12 @@ class UpdateFeedService
 
     public function currentVersion(): string
     {
+        $installedVersion = null;
         try {
             if (Storage::disk('local')->exists('installed.lock')) {
                 $payload = json_decode(Storage::disk('local')->get('installed.lock'), true);
                 if (is_array($payload) && ! empty($payload['version'])) {
-                    return (string) $payload['version'];
+                    $installedVersion = (string) $payload['version'];
                 }
             }
         } catch (\Throwable) {
@@ -81,18 +91,25 @@ class UpdateFeedService
             $configVersion = '0.0.0';
         }
 
+        $effectiveVersion = $installedVersion ?? $configVersion;
+        if ($installedVersion && version_compare($configVersion, $installedVersion, '>')) {
+            $effectiveVersion = $configVersion;
+        }
+
         try {
-            Storage::disk('local')->put(
-                'installed.lock',
-                json_encode([
-                    'version' => $configVersion,
-                    'installed_at' => now()->toIso8601String(),
-                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
-            );
+            if ($installedVersion !== $effectiveVersion) {
+                Storage::disk('local')->put(
+                    'installed.lock',
+                    json_encode([
+                        'version' => $effectiveVersion,
+                        'installed_at' => now()->toIso8601String(),
+                    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+                );
+            }
         } catch (\Throwable) {
             // ignore write errors
         }
 
-        return $configVersion;
+        return $effectiveVersion;
     }
 }

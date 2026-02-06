@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.6.4 - 2026-02-06
+- Update-Check: installed.lock wird aktualisiert, wenn APP_VERSION höher ist.
+
 ## v1.6.3 - 2026-02-06
 - Kein „Lebensunterhalt nächster Monat“ für vergangene, nicht aktuelle Monate.
 

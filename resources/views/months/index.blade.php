@@ -24,6 +24,14 @@
                             $month = $card['month'];
                             $metrics = $card['metrics'];
                             $cumulative = $card['cumulative'] ?? [];
+                            $holidays = $card['holidays'] ?? collect();
+                            $holidayCount = $holidays->count();
+                            $holidayPreview = $holidays->take(2)->map(function ($holiday) {
+                                $label = $holiday->name ?: 'Ferien';
+                                $range = $holiday->date_from->format('d.m') . '–' . $holiday->date_to->format('d.m');
+                                return $label . ' ' . $range;
+                            })->implode(' · ');
+                            $holidayWorkdaysDeducted = (int) ($metrics['holiday_workdays_deducted'] ?? 0);
                             $result = $metrics['result'] ?? 0;
                             $resultClass = $result < 0 ? 'text-red-700 dark:text-red-200' : 'text-emerald-800 dark:text-emerald-200';
                             $resultBoxClass = $result < 0
@@ -45,6 +53,17 @@
                                     </div>
                                     <div class="text-xs text-gray-500 dark:text-slate-400">{{ $month->date_from->format('d.m.Y') }} – {{ $month->date_to->format('d.m.Y') }}</div>
                                     <div class="text-xs text-gray-500 dark:text-slate-400">Lebensunterhalt/Tag CHF {{ $fmt($month->daily_living_cost) }}</div>
+                                    @if ($holidayCount > 0)
+                                        <div class="mt-1 text-[11px] text-blue-700/90 space-y-0.5">
+                                            Ferien: {{ $holidayPreview }}
+                                            @if ($holidayCount > 2)
+                                                <span class="text-blue-600">+{{ $holidayCount - 2 }} weitere</span>
+                                            @endif
+                                            @if ($isSelfEmployed && $holidayWorkdaysDeducted > 0)
+                                                <div class="text-[10px] text-gray-500">Abgezogene Arbeitstage: {{ $holidayWorkdaysDeducted }}</div>
+                                            @endif
+                                        </div>
+                                    @endif
                                 </div>
                                 <div class="text-xs text-gray-400 dark:text-slate-500">→</div>
                             </div>

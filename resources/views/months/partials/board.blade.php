@@ -17,6 +17,16 @@
     $livingLabel = $today->between($month->date_from, $month->date_to, true)
         ? 'Lebensunterhalt ab Heute'
         : 'Lebensunterhalt für diesen Monat';
+    $livingCostBase = (float) ($metrics['living_cost_base'] ?? $metrics['living_cost_open'] ?? 0);
+    $holidayCustomLivingCost = (float) ($metrics['holiday_custom_living_cost'] ?? 0);
+    $holidayDeductedDays = (int) ($metrics['holiday_deducted_days'] ?? 0);
+    $holidayWorkdaysDeducted = (int) ($metrics['holiday_workdays_deducted'] ?? 0);
+    $holidays = $holidays ?? collect();
+    $holidayModeLabels = [
+        'deduct' => 'Lebensunterhalt abziehen',
+        'keep' => 'Lebensunterhalt belassen',
+        'custom' => 'Benutzerdefiniert',
+    ];
 
     $forecastAccounts = $accounts->where('type', 'forecast');
     $balanceAccounts = $accounts->whereIn('type', ['ist', 'clearing']);
@@ -101,6 +111,42 @@
     @if (($prevMonthOpenCount ?? 0) > 0 && $month->is_current)
         <div class="border border-amber-200 bg-amber-50 text-amber-900 p-3 text-sm accent-box">
             Im Vormonat {{ $prevMonth?->name }} sind noch {{ $prevMonthOpenCount }} offene Posten. Der Übertrag in den nächsten Monat ist gesperrt.
+        </div>
+    @endif
+
+    @if ($holidays->isNotEmpty())
+        <div class="space-y-2">
+            @if (! $hideWorkdayMetrics && $holidayWorkdaysDeducted > 0)
+                <div class="text-xs text-gray-500">Abgezogene Arbeitstage (Monat): {{ $holidayWorkdaysDeducted }}</div>
+            @endif
+            @foreach ($holidays as $holiday)
+                @php
+                    $mode = $holiday->living_cost_mode ?? 'deduct';
+                    $label = $holidayModeLabels[$mode] ?? $mode;
+                    $customLabel = $mode === 'custom' && $holiday->custom_living_cost !== null
+                        ? 'CHF '.number_format((float) $holiday->custom_living_cost, 2, '.', "'").'/Tag'
+                        : null;
+                @endphp
+                <a href="{{ route('holidays.edit', $holiday) }}" class="group block rounded-lg border border-blue-200/70 bg-blue-50/70 dark:bg-slate-900/60 px-3 py-2 text-sm transition hover:shadow-sm">
+                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div class="min-w-0">
+                            <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">{{ $holiday->name ?: 'Ferien' }}</div>
+                            <div class="text-xs text-gray-600">{{ $holiday->date_from->format('d.m.Y') }} – {{ $holiday->date_to->format('d.m.Y') }}</div>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs text-gray-700 sm:text-right">
+                            <div class="text-right">
+                                <div>{{ $label }}</div>
+                                @if ($customLabel)
+                                    <div class="text-[11px] text-gray-500">{{ $customLabel }}</div>
+                                @endif
+                            </div>
+                            <span class="text-[var(--accent)] opacity-70 group-hover:opacity-100" aria-hidden="true">
+                                <x-icon-edit class="h-4 w-4" />
+                            </span>
+                        </div>
+                    </div>
+                </a>
+            @endforeach
         </div>
     @endif
 
@@ -879,9 +925,22 @@
                 </thead>
                 <tbody data-sortable data-order-url="{{ route('months.entries.order', $month) }}" data-type="fixcost">
                     <tr class="border-t border-amber-200">
-                        <td class="{{ $rowPadClass }} pr-2">{{ $livingLabel }}</td>
-                        <td class="{{ $rowPadClass }} text-right tabular-nums font-semibold">{{ $fmt($metrics['living_cost_open']) }}</td>
+                        <td class="{{ $rowPadClass }} pr-2">
+                            <div class="flex flex-col">
+                                <span>{{ $livingLabel }}</span>
+                                @if ($holidayDeductedDays > 0)
+                                    <span class="text-[10px] text-gray-500">Ferientage abgezogen: {{ $holidayDeductedDays }}</span>
+                                @endif
+                            </div>
+                        </td>
+                        <td class="{{ $rowPadClass }} text-right tabular-nums font-semibold">{{ $fmt($livingCostBase) }}</td>
                     </tr>
+                    @if ($holidayCustomLivingCost > 0)
+                        <tr class="border-t border-amber-200">
+                            <td class="{{ $rowPadClass }} pr-2 text-gray-700">Ferien-Lebensunterhalt</td>
+                            <td class="{{ $rowPadClass }} text-right tabular-nums font-semibold">{{ $fmt($holidayCustomLivingCost) }}</td>
+                        </tr>
+                    @endif
 
                     <tr class="border-t border-amber-200 text-xs uppercase tracking-wide text-amber-900 dark:text-amber-200">
                         <td class="pt-2 pb-1">Wiederkehrende Kosten</td>

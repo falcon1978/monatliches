@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.5.0 - 2026-02-06
+- Ferien: Erfassung mit Lebensunterhalt-Modi (abziehen, belassen, pro Tag benutzerdefiniert).
+- Ferien: Anzeige in Monatsübersicht und Monatsansicht; klickbare Ferienkarten.
+- Lebensunterhalt: Ferien-Logik für Selbstständige inkl. abgezogener Arbeitstage.
+
 ## v1.4.1 - 2026-02-05
 - Monatsübersicht: kumulierte Kennzahlen, Dark-Mode-Hover angepasst.
 - Monat: Archivieren (Resultat 0.00, vergangen, nicht aktuell) mit Folge-Januar.

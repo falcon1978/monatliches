@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Models\AccountBalance;
 use App\Models\Entry;
+use App\Models\Holiday;
 use App\Models\Month;
+use App\Models\User;
 use App\Services\AccountBalanceService;
 use Illuminate\Support\Carbon;
 
@@ -90,7 +92,12 @@ class MonthMetricsService
             $sumResults += $this->calculate($month, null, $month->is_current)['result'];
         }
 
-        $workdays = $this->countWorkdaysBetween($today, $targetMonth->date_to->copy()->startOfDay());
+        $applyHolidays = $targetMonth->user?->isSelfEmployed() ?? false;
+        $workdays = $this->countWorkdaysBetween(
+            $today,
+            $targetMonth->date_to->copy()->startOfDay(),
+            $applyHolidays ? $targetMonth->user : null
+        );
 
         return [
             'result_sum' => round($sumResults, 2),
@@ -170,9 +177,14 @@ class MonthMetricsService
         $nonCustomerIncome = $this->nonCustomerIncome($month);
         $balanceIncome = $this->balanceIncome($month);
         $openExpenses = $this->openExpenses($month);
-        $remainingDays = $month->remainingDaysForLivingCost($today);
-        $livingCostOpen = round($remainingDays * (float) $month->daily_living_cost, 2);
+        $livingSummary = $month->livingCostSummary($today);
+        $remainingDays = (int) ($livingSummary['remaining_days'] ?? 0);
+        $livingCostBase = round((float) ($livingSummary['base'] ?? 0), 2);
+        $holidayCustomLivingCost = round((float) ($livingSummary['custom_total'] ?? 0), 2);
+        $livingCostOpen = round((float) ($livingSummary['total'] ?? 0), 2);
+        $holidayDeductedDays = (int) ($livingSummary['deducted_days'] ?? 0);
         $workdaysRemaining = $month->workdaysRemaining($today);
+        $holidayWorkdaysDeducted = $month->holidayWorkdaysDeducted();
 
         return [
             'open_forecast_income' => $openForecastIncome,
@@ -180,6 +192,10 @@ class MonthMetricsService
             'balance_income' => $balanceIncome,
             'open_expenses' => $openExpenses,
             'living_cost_open' => $livingCostOpen,
+            'living_cost_base' => $livingCostBase,
+            'holiday_custom_living_cost' => $holidayCustomLivingCost,
+            'holiday_deducted_days' => $holidayDeductedDays,
+            'holiday_workdays_deducted' => $holidayWorkdaysDeducted,
             'workdays_remaining' => $workdaysRemaining,
             'remaining_days' => $remainingDays,
         ];
@@ -208,7 +224,7 @@ class MonthMetricsService
         ]);
     }
 
-    private function countWorkdaysBetween(Carbon $start, Carbon $end): int
+    private function countWorkdaysBetween(Carbon $start, Carbon $end, ?User $user = null): int
     {
         if ($end->lt($start)) {
             return 0;
@@ -216,9 +232,13 @@ class MonthMetricsService
 
         $cursor = $start->copy();
         $workdays = 0;
+        $holidayDates = [];
+        if ($user) {
+            $holidayDates = Holiday::dateSetForUser($user, $start, $end);
+        }
 
         while ($cursor->lte($end)) {
-            if ($cursor->isWeekday()) {
+            if ($cursor->isWeekday() && ! isset($holidayDates[$cursor->toDateString()])) {
                 $workdays++;
             }
             $cursor->addDay();

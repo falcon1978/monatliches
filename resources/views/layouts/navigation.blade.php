@@ -61,6 +61,7 @@
 
                     <x-slot name="content">
                         <x-dropdown-link :href="route('accounts.index')">Konten</x-dropdown-link>
+                        <x-dropdown-link :href="route('holidays.index')">Ferien</x-dropdown-link>
                         <x-dropdown-link :href="route('recurring-templates.index')">Wiederkehrende Posten</x-dropdown-link>
                     </x-slot>
                 </x-dropdown>

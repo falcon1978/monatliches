@@ -76,6 +76,11 @@ class User extends Authenticatable
         return $this->hasMany(RecurringTemplate::class);
     }
 
+    public function holidays()
+    {
+        return $this->hasMany(Holiday::class);
+    }
+
     public function isAdmin(): bool
     {
         return (bool) $this->is_admin;

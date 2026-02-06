@@ -6,6 +6,7 @@ use App\Http\Requests\StoreMonthRequest;
 use App\Http\Requests\UpdateMonthRequest;
 use App\Models\Account;
 use App\Models\Entry;
+use App\Models\Holiday;
 use App\Models\Month;
 use App\Models\RecurringTemplate;
 use App\Services\AccountBalanceService;
@@ -25,12 +26,28 @@ class MonthController extends Controller
             ->orderBy('date_from')
             ->get();
 
-        $monthCards = $months->map(function (Month $month) use ($metricsService) {
+        $holidays = collect();
+        if ($months->isNotEmpty()) {
+            $rangeStart = $months->first()->date_from;
+            $rangeEnd = $months->last()->date_to;
+            $holidays = Holiday::forUser($user)
+                ->overlapping($rangeStart, $rangeEnd)
+                ->orderBy('date_from')
+                ->orderBy('date_to')
+                ->get();
+        }
+
+        $monthCards = $months->map(function (Month $month) use ($metricsService, $holidays) {
             $cumulative = $metricsService->cumulativeFromToday($month);
+            $monthHolidays = $holidays
+                ->filter(fn (Holiday $holiday) => $holiday->date_from->lte($month->date_to)
+                    && $holiday->date_to->gte($month->date_from))
+                ->values();
             return [
                 'month' => $month,
                 'metrics' => $metricsService->calculate($month, null, $month->is_current),
                 'cumulative' => $cumulative,
+                'holidays' => $monthHolidays,
             ];
         });
 
@@ -706,6 +723,12 @@ class MonthController extends Controller
                 ->count();
         }
 
+        $holidays = Holiday::forUser($user)
+            ->overlapping($month->date_from, $month->date_to)
+            ->orderBy('date_from')
+            ->orderBy('date_to')
+            ->get();
+
         return [
             'month' => $month,
             'entries' => $entries,
@@ -725,6 +748,7 @@ class MonthController extends Controller
             'canRevert' => $revertCount > 0,
             'pendingTemplates' => $this->countPendingTemplates($month),
             'canArchive' => $archiveEligible,
+            'holidays' => $holidays,
         ];
     }
 

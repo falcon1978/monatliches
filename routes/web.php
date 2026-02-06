@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\UpdateController as AdminUpdateController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EntryController;
+use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\InstallController;
 use App\Http\Controllers\MonthController;
 use App\Http\Controllers\MonthEntryController;
@@ -86,6 +87,9 @@ Route::middleware('installed')->group(function () {
             ->except(['show']);
         Route::patch('recurring-templates/order', [RecurringTemplateController::class, 'updateOrder'])
             ->name('recurring-templates.order');
+
+        Route::resource('holidays', HolidayController::class)
+            ->except(['show']);
 
         Route::middleware('can:viewAny,App\\Models\\User')->prefix('admin')->name('admin.')->group(function () {
             Route::resource('users', AdminUserController::class)->except(['show']);

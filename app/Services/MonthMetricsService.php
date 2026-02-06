@@ -191,6 +191,9 @@ class MonthMetricsService
         $isCurrentRange = $today->between($month->date_from, $month->date_to, true);
         $includeCurrentLivingCost = $month->is_current && $isCurrentRange;
         $includeNextMonthLivingCost = (bool) $user;
+        if ($includeNextMonthLivingCost && ! $month->is_current && $today->gt($month->date_to)) {
+            $includeNextMonthLivingCost = false;
+        }
         if ($includeNextMonthLivingCost) {
             $nextStart = $month->date_from->copy()->addMonthNoOverflow()->startOfMonth();
             $nextMonth = Month::forUser($user)

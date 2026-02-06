@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.6.3 - 2026-02-06
+- Kein „Lebensunterhalt nächster Monat“ für vergangene, nicht aktuelle Monate.
+
 ## v1.6.2 - 2026-02-06
 - Lebensunterhalt ab Heute nur im aktuell markierten Monat.
 

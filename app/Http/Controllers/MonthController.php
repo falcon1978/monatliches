@@ -37,17 +37,32 @@ class MonthController extends Controller
                 ->get();
         }
 
-        $monthCards = $months->map(function (Month $month) use ($metricsService, $holidays) {
+        $monthCards = $months->map(function (Month $month) use ($metricsService, $holidays, $months) {
             $cumulative = $metricsService->cumulativeFromToday($month);
             $monthHolidays = $holidays
                 ->filter(fn (Holiday $holiday) => $holiday->date_from->lte($month->date_to)
                     && $holiday->date_to->gte($month->date_from))
                 ->values();
+            $nextStart = $month->date_from->copy()->addMonthNoOverflow()->startOfMonth();
+            $nextMonth = $months->first(fn (Month $candidate) => $candidate->date_from->eq($nextStart));
+            $nextMonthHolidays = collect();
+            if ($nextMonth) {
+                $nextMonthHolidays = $holidays
+                    ->filter(fn (Holiday $holiday) => $holiday->date_from->lte($nextMonth->date_to)
+                        && $holiday->date_to->gte($nextMonth->date_from))
+                    ->reject(fn (Holiday $holiday) => $holiday->date_from->lte($month->date_to)
+                        && $holiday->date_to->gte($month->date_from))
+                    ->values();
+            }
+            $combinedHolidays = $monthHolidays
+                ->merge($nextMonthHolidays)
+                ->unique('id')
+                ->values();
             return [
                 'month' => $month,
                 'metrics' => $metricsService->calculate($month, null, $month->is_current),
                 'cumulative' => $cumulative,
-                'holidays' => $monthHolidays,
+                'holidays' => $combinedHolidays,
             ];
         });
 
@@ -728,6 +743,19 @@ class MonthController extends Controller
             ->orderBy('date_from')
             ->orderBy('date_to')
             ->get();
+        $nextMonthHolidays = collect();
+        if ($nextMonth) {
+            $nextMonthHolidays = Holiday::forUser($user)
+                ->overlapping($nextMonth->date_from, $nextMonth->date_to)
+                ->orderBy('date_from')
+                ->orderBy('date_to')
+                ->get()
+                ->reject(function (Holiday $holiday) use ($month) {
+                    return $holiday->date_from->lte($month->date_to)
+                        && $holiday->date_to->gte($month->date_from);
+                })
+                ->values();
+        }
 
         return [
             'month' => $month,
@@ -749,6 +777,7 @@ class MonthController extends Controller
             'pendingTemplates' => $this->countPendingTemplates($month),
             'canArchive' => $archiveEligible,
             'holidays' => $holidays,
+            'nextMonthHolidays' => $nextMonthHolidays,
         ];
     }
 

@@ -21,7 +21,12 @@
     $holidayCustomLivingCost = (float) ($metrics['holiday_custom_living_cost'] ?? 0);
     $holidayDeductedDays = (int) ($metrics['holiday_deducted_days'] ?? 0);
     $holidayWorkdaysDeducted = (int) ($metrics['holiday_workdays_deducted'] ?? 0);
+    $nextMonthLivingCost = (float) ($metrics['next_month_living_cost'] ?? 0);
+    $nextMonthLivingCostBase = (float) ($metrics['next_month_living_cost_base'] ?? 0);
+    $nextMonthHolidayCustomLivingCost = (float) ($metrics['next_month_holiday_custom_living_cost'] ?? 0);
+    $includeCurrentLivingCost = (bool) ($metrics['include_current_living_cost'] ?? true);
     $holidays = $holidays ?? collect();
+    $nextMonthHolidays = $nextMonthHolidays ?? collect();
     $holidayModeLabels = [
         'deduct' => 'Lebensunterhalt abziehen',
         'keep' => 'Lebensunterhalt belassen',
@@ -114,13 +119,23 @@
         </div>
     @endif
 
-    @if ($holidays->isNotEmpty())
+    @if ($holidays->isNotEmpty() || $nextMonthHolidays->isNotEmpty())
+        @php
+            $holidayCards = collect();
+            foreach ($holidays as $holiday) {
+                $holidayCards->push(['holiday' => $holiday, 'is_next' => false]);
+            }
+            foreach ($nextMonthHolidays as $holiday) {
+                $holidayCards->push(['holiday' => $holiday, 'is_next' => true]);
+            }
+        @endphp
         <div class="space-y-2">
             @if (! $hideWorkdayMetrics && $holidayWorkdaysDeducted > 0)
                 <div class="text-xs text-gray-500">Abgezogene Arbeitstage (Monat): {{ $holidayWorkdaysDeducted }}</div>
             @endif
-            @foreach ($holidays as $holiday)
+            @foreach ($holidayCards as $card)
                 @php
+                    $holiday = $card['holiday'];
                     $mode = $holiday->living_cost_mode ?? 'deduct';
                     $label = $holidayModeLabels[$mode] ?? $mode;
                     $customLabel = $mode === 'custom' && $holiday->custom_living_cost !== null
@@ -131,7 +146,12 @@
                     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <div class="min-w-0">
                             <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">{{ $holiday->name ?: 'Ferien' }}</div>
-                            <div class="text-xs text-gray-600">{{ $holiday->date_from->format('d.m.Y') }} – {{ $holiday->date_to->format('d.m.Y') }}</div>
+                            <div class="text-xs text-gray-600">
+                                {{ $holiday->date_from->format('d.m.Y') }} – {{ $holiday->date_to->format('d.m.Y') }}
+                                @if ($card['is_next'] && ! empty($nextMonth?->name))
+                                    <span class="text-[10px] text-gray-500">({{ $nextMonth->name }})</span>
+                                @endif
+                            </div>
                         </div>
                         <div class="flex items-center gap-2 text-xs text-gray-700 sm:text-right">
                             <div class="text-right">
@@ -924,21 +944,49 @@
                     </tr>
                 </thead>
                 <tbody data-sortable data-order-url="{{ route('months.entries.order', $month) }}" data-type="fixcost">
-                    <tr class="border-t border-amber-200">
-                        <td class="{{ $rowPadClass }} pr-2">
-                            <div class="flex flex-col">
-                                <span>{{ $livingLabel }}</span>
-                                @if ($holidayDeductedDays > 0)
-                                    <span class="text-[10px] text-gray-500">Ferientage abgezogen: {{ $holidayDeductedDays }}</span>
-                                @endif
-                            </div>
-                        </td>
-                        <td class="{{ $rowPadClass }} text-right tabular-nums font-semibold">{{ $fmt($livingCostBase) }}</td>
-                    </tr>
-                    @if ($holidayCustomLivingCost > 0)
+                    @if ($includeCurrentLivingCost)
                         <tr class="border-t border-amber-200">
-                            <td class="{{ $rowPadClass }} pr-2 text-gray-700">Ferien-Lebensunterhalt</td>
-                            <td class="{{ $rowPadClass }} text-right tabular-nums font-semibold">{{ $fmt($holidayCustomLivingCost) }}</td>
+                            <td class="{{ $rowPadClass }} pr-2">
+                                <div class="flex flex-col">
+                                    <span>{{ $livingLabel }}</span>
+                                    @if ($holidayDeductedDays > 0)
+                                        <span class="text-[10px] text-gray-500">Ferientage abgezogen: {{ $holidayDeductedDays }}</span>
+                                    @endif
+                                </div>
+                            </td>
+                            <td class="{{ $rowPadClass }} text-right tabular-nums font-semibold">{{ $fmt($livingCostBase) }}</td>
+                        </tr>
+                        @if ($holidayCustomLivingCost > 0)
+                            <tr class="border-t border-amber-200">
+                                <td class="{{ $rowPadClass }} pr-2 text-gray-700">Ferien-Lebensunterhalt</td>
+                                <td class="{{ $rowPadClass }} text-right tabular-nums font-semibold">{{ $fmt($holidayCustomLivingCost) }}</td>
+                            </tr>
+                        @endif
+                    @endif
+                    @if ($nextMonthLivingCostBase > 0)
+                        <tr class="border-t border-amber-200">
+                            <td class="{{ $rowPadClass }} pr-2 text-gray-700">
+                                <div class="flex flex-col">
+                                    <span>Lebensunterhalt nächster Monat</span>
+                                    @if (! empty($nextMonth?->name))
+                                        <span class="text-[10px] text-gray-500">{{ $nextMonth->name }}</span>
+                                    @endif
+                                </div>
+                            </td>
+                            <td class="{{ $rowPadClass }} text-right tabular-nums font-semibold">{{ $fmt($nextMonthLivingCostBase) }}</td>
+                        </tr>
+                    @endif
+                    @if ($nextMonthHolidayCustomLivingCost > 0)
+                        <tr class="border-t border-amber-200">
+                            <td class="{{ $rowPadClass }} pr-2 text-gray-700">
+                                <div class="flex flex-col">
+                                    <span>Ferien-Lebensunterhalt nächster Monat</span>
+                                    @if (! empty($nextMonth?->name))
+                                        <span class="text-[10px] text-gray-500">{{ $nextMonth->name }}</span>
+                                    @endif
+                                </div>
+                            </td>
+                            <td class="{{ $rowPadClass }} text-right tabular-nums font-semibold">{{ $fmt($nextMonthHolidayCustomLivingCost) }}</td>
                         </tr>
                     @endif
 

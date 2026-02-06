@@ -173,16 +173,43 @@ class MonthMetricsService
 
     private function baseMetrics(Month $month, ?Carbon $today = null): array
     {
+        $today = $today?->copy() ?? now()->startOfDay();
         $openForecastIncome = $this->openForecastIncome($month);
         $nonCustomerIncome = $this->nonCustomerIncome($month);
         $balanceIncome = $this->balanceIncome($month);
         $openExpenses = $this->openExpenses($month);
         $livingSummary = $month->livingCostSummary($today);
         $remainingDays = (int) ($livingSummary['remaining_days'] ?? 0);
-        $livingCostBase = round((float) ($livingSummary['base'] ?? 0), 2);
-        $holidayCustomLivingCost = round((float) ($livingSummary['custom_total'] ?? 0), 2);
-        $livingCostOpen = round((float) ($livingSummary['total'] ?? 0), 2);
-        $holidayDeductedDays = (int) ($livingSummary['deducted_days'] ?? 0);
+        $rawLivingCostBase = round((float) ($livingSummary['base'] ?? 0), 2);
+        $rawHolidayCustomLivingCost = round((float) ($livingSummary['custom_total'] ?? 0), 2);
+        $rawHolidayDeductedDays = (int) ($livingSummary['deducted_days'] ?? 0);
+        $nextMonthLivingCost = 0.0;
+        $nextMonthLivingCostBase = 0.0;
+        $nextMonthHolidayCustomLivingCost = 0.0;
+        $user = $month->user;
+        $isCurrentRange = $today->between($month->date_from, $month->date_to, true);
+        $includeCurrentLivingCost = $isCurrentRange;
+        $includeNextMonthLivingCost = (bool) $user;
+        if ($includeNextMonthLivingCost) {
+            $nextStart = $month->date_from->copy()->addMonthNoOverflow()->startOfMonth();
+            $nextMonth = Month::forUser($user)
+                ->visible()
+                ->whereDate('date_from', $nextStart->toDateString())
+                ->first();
+            if ($nextMonth) {
+                $nextSummary = $nextMonth->livingCostSummary($nextMonth->date_from->copy()->startOfDay());
+                $nextMonthLivingCostBase = round((float) ($nextSummary['base'] ?? 0), 2);
+                $nextMonthHolidayCustomLivingCost = round((float) ($nextSummary['custom_total'] ?? 0), 2);
+                $nextMonthLivingCost = round((float) ($nextSummary['total'] ?? 0), 2);
+            }
+        }
+        $livingCostBase = $includeCurrentLivingCost ? $rawLivingCostBase : 0.0;
+        $holidayCustomLivingCost = $includeCurrentLivingCost ? $rawHolidayCustomLivingCost : 0.0;
+        $holidayDeductedDays = $includeCurrentLivingCost ? $rawHolidayDeductedDays : 0;
+        $livingCostOpen = round(
+            ($includeCurrentLivingCost ? (float) ($livingSummary['total'] ?? 0) : 0.0) + $nextMonthLivingCost,
+            2
+        );
         $workdaysRemaining = $month->workdaysRemaining($today);
         $holidayWorkdaysDeducted = $month->holidayWorkdaysDeducted();
 
@@ -195,6 +222,10 @@ class MonthMetricsService
             'living_cost_base' => $livingCostBase,
             'holiday_custom_living_cost' => $holidayCustomLivingCost,
             'holiday_deducted_days' => $holidayDeductedDays,
+            'next_month_living_cost' => $nextMonthLivingCost,
+            'next_month_living_cost_base' => $nextMonthLivingCostBase,
+            'next_month_holiday_custom_living_cost' => $nextMonthHolidayCustomLivingCost,
+            'include_current_living_cost' => $includeCurrentLivingCost,
             'holiday_workdays_deducted' => $holidayWorkdaysDeducted,
             'workdays_remaining' => $workdaysRemaining,
             'remaining_days' => $remainingDays,

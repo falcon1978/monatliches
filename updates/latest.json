@@ -1,7 +1,7 @@
 {
-  "version": "1.5.0",
+  "version": "1.6.0",
   "released_at": "2026-02-06",
-  "download_url": "https://github.com/falcon1978/monatliches/releases/download/1.5.0/monatliches-dist-v1.5.0.zip",
-  "sha256": "2e4134623e666581e0e97e9fc7bb83c48e5c7f40f2dcb95355e1f883c9e809c0",
-  "changelog": "Ferien-Logik mit Lebensunterhalt-Modi, Anzeige in Monatsübersicht und Monatsansicht, abgezogene Arbeitstage für Selbstständige."
+  "download_url": "https://github.com/falcon1978/monatliches/releases/download/1.6.0/monatliches-dist-v1.6.0.zip",
+  "sha256": "77870600d221b83cab294203726f22d0b7d09f08789c310dfbe56d0124636a26",
+  "changelog": "Lebensunterhalt des Folgemonats getrennt ausweisen; Ferienhinweis erscheint im Vormonat."
 }

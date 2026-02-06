@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.6.0 - 2026-02-06
+- Lebensunterhalt: nächste Monatsposten für alle Benutzer, getrennt nach Ferienanteil.
+- Ferienhinweise erscheinen zusätzlich im Vormonat.
+
 ## v1.5.0 - 2026-02-06
 - Ferien: Erfassung mit Lebensunterhalt-Modi (abziehen, belassen, pro Tag benutzerdefiniert).
 - Ferien: Anzeige in Monatsübersicht und Monatsansicht; klickbare Ferienkarten.

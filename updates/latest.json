@@ -1,7 +1,7 @@
 {
-  "version": "1.6.1",
+  "version": "1.6.2",
   "released_at": "2026-02-06",
-  "download_url": "https://github.com/falcon1978/monatliches/releases/download/1.6.1/monatliches-dist-v1.6.1.zip",
-  "sha256": "512897102013e94351ecfc696708bda9019001854b4345591daea95175b89071",
-  "changelog": "Lebensunterhalt des Folgemonats ab Heute anzeigen, wenn der aktuell markierte Monat in der Vergangenheit liegt."
+  "download_url": "https://github.com/falcon1978/monatliches/releases/download/1.6.2/monatliches-dist-v1.6.2.zip",
+  "sha256": "b9efa271122635bcfab1bbdd81bc0dd10e0c9476b67eeccbdb9f36a99b0650b3",
+  "changelog": "Lebensunterhalt ab Heute nur im aktuell markierten Monat."
 }

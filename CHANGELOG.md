@@ -1,5 +1,8 @@
 # Changelog
 
+## v1.6.2 - 2026-02-06
+- Lebensunterhalt ab Heute nur im aktuell markierten Monat.
+
 ## v1.6.1 - 2026-02-06
 - Wenn der aktuelle Monat bereits vergangen ist: nächster Monat ab heute berechnen.
 

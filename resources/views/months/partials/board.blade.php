@@ -14,9 +14,6 @@
     $editActionPrimary = $editActionBase.' bg-[var(--accent)] text-white';
     $editActionGhost = $editActionBase.' border border-gray-300 text-gray-600';
     $editActionDanger = $editActionBase.' border border-red-200 text-red-700';
-    $livingLabel = $today->between($month->date_from, $month->date_to, true)
-        ? 'Lebensunterhalt ab Heute'
-        : 'Lebensunterhalt für diesen Monat';
     $livingCostBase = (float) ($metrics['living_cost_base'] ?? $metrics['living_cost_open'] ?? 0);
     $holidayCustomLivingCost = (float) ($metrics['holiday_custom_living_cost'] ?? 0);
     $holidayDeductedDays = (int) ($metrics['holiday_deducted_days'] ?? 0);
@@ -26,6 +23,9 @@
     $nextMonthHolidayCustomLivingCost = (float) ($metrics['next_month_holiday_custom_living_cost'] ?? 0);
     $nextMonthLivingCostFromToday = (bool) ($metrics['next_month_living_cost_from_today'] ?? false);
     $includeCurrentLivingCost = (bool) ($metrics['include_current_living_cost'] ?? true);
+    $livingLabel = $includeCurrentLivingCost
+        ? 'Lebensunterhalt ab Heute'
+        : 'Lebensunterhalt für diesen Monat';
     $holidays = $holidays ?? collect();
     $nextMonthHolidays = $nextMonthHolidays ?? collect();
     $holidayModeLabels = [

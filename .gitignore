@@ -11,6 +11,8 @@
 /.phpunit.cache
 /.vscode
 /.zed
+/.agents
+/landing
 /auth.json
 /bootstrap/cache/*.php
 /node_modules

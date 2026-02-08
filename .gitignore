@@ -12,6 +12,7 @@
 /.vscode
 /.zed
 /.agents
+/.codex
 /landing
 /auth.json
 /bootstrap/cache/*.php

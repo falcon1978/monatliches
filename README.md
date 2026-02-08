@@ -1,6 +1,18 @@
 # Monatliches
 
-Monatliches ist ein schlankes Budget- und Monatsplanungs-Tool auf Laravel-Basis.
+Monatliches ist ein schlankes Budget- und Monatsplanungs-Tool auf Laravel-Basis. Open Source, pragmatisch und für Selbsthosting gebaut.
+
+## Kurzüberblick
+
+- Monatsübersicht mit genau einem **aktuellen Monat**.
+- Einnahmen, Ausgaben, Fixkosten und Transfers pro Monat.
+- Konten mit **globalen Kontoständen** (nicht pro Monat).
+- Übertragen offener Posten in den nächsten Monat (inkl. Rückgängig‑Funktion).
+- Wiederkehrende Vorlagen für monatliche Posten.
+- Ferien & Lebensunterhalt (Abzug, Beibehalten oder eigener Tagessatz).
+- Kennzahlen pro Monat (z. B. offen, bezahlt, kumuliert ab heute).
+- Nutzerprofil inkl. Akzentfarbe und Profilbild.
+- Adminbereich für User‑Management und In‑App‑Updates.
 
 ## Wichtige Konzepte
 
@@ -11,17 +23,47 @@ Monatliches ist ein schlankes Budget- und Monatsplanungs-Tool auf Laravel-Basis.
 - Übertragen ist gesperrt, solange im Vormonat noch offene Posten existieren.
 - Ein Übertrag kann wieder **rückgängig** gemacht werden.
 
-## Installation (für Laien)
+## Demo
 
-1. Lade die Release-Datei `monatliches-dist-vX.Y.Z.zip` aus den GitHub Releases herunter.
-2. Entpacke die ZIP in dein Webverzeichnis (z. B. `example.com/budget`).
-3. Lege im Hosting-Panel eine MySQL-Datenbank + Benutzer an.
-4. Öffne im Browser: `https://example.com/budget/install`
+Demo‑Login:
+
+- URL: [demo.monatlich.es](https://demo.monatlich.es)
+- E‑Mail: `demo@monatlich.es`
+- Passwort: `demo1234`
+- Hinweis: Die Datenbank wird stündlich zurückgesetzt.
+
+## Gehostete Variante
+
+Wenn du keine eigene Installation möchtest, gibt es eine gehostete Variante für **CHF 6.– / Monat**.
+
+- Wunsch‑Subdomain: `xxx.monatlich.es`
+- Kontakt: `cv@vitalmedia.ch`
+
+## Installation (Self‑Hosting)
+
+1. Lade die Release‑Datei `monatliches-dist-vX.Y.Z.zip` aus den GitHub Releases herunter.
+2. Entpacke die ZIP in dein Webverzeichnis (z. B. `example.com/monatlich`).
+3. Lege im Hosting‑Panel eine MySQL‑Datenbank + Benutzer an.
+4. Öffne im Browser: `https://example.com/monatlich/install`.
 5. Folge dem Installer (Systemcheck → DB → App → Migration → Admin).
 
 Hinweis: Wenn die App in einem Unterordner läuft, muss `APP_URL` diesen Pfad enthalten.
 
-## Installation (für Devs)
+## Technische Anforderungen
+
+- PHP **>= 8.2**
+- MySQL/MariaDB
+- Webserver mit Schreibrechten auf `storage/` und `bootstrap/cache/`
+
+## Entwicklung (für Devs)
+
+Schnellstart:
+
+```bash
+composer run setup
+```
+
+Manuell:
 
 ```bash
 composer install
@@ -32,26 +74,38 @@ php artisan key:generate
 php artisan migrate
 ```
 
+Lokaler Dev‑Stack:
+
+```bash
+composer run dev
+```
+
 ## Hosting im Unterordner
 
-Wenn die App unter `https://example.com/budget` läuft, muss `APP_URL` genau so gesetzt sein.
+Wenn die App unter `https://example.com/monatlich` läuft, muss `APP_URL` genau so gesetzt sein.
 
 ## Updates
 
 1. Neues `monatliches-dist-vX.Y.Z.zip` herunterladen.
-2. Im Admin-Bereich unter **Update** das ZIP hochladen.
+2. Im Admin‑Bereich unter **Update** das ZIP hochladen.
 3. Das Update wird direkt nach dem Upload installiert.
 
 Dabei `.env` und `storage/` behalten. Migrationen werden beim Update automatisch ausgeführt.
 
 ## Release-/Dist-Konzept
 
-- Das GitHub-Repo ist die Source (ohne `vendor/` und ohne `node_modules/`).
+- Das GitHub‑Repo ist die Source (ohne `vendor/` und ohne `node_modules/`).
 - GitHub Releases enthalten `monatliches-dist-vX.Y.Z.zip` inklusive `vendor/` und `public/build/`, aber ohne `.env`.
 - Lokal kann ein Release mit `tools/build-dist.sh` gebaut werden.
+
+## Troubleshooting
+
+- Profilbilder fehlen: `php artisan storage:link` ausführen und prüfen, ob `public/storage` öffentlich erreichbar ist.
+- Installer hängt: Schreibrechte auf `storage/` und `bootstrap/cache/` prüfen.
 
 ## Local test plan
 
 - `storage/app/installed.lock` löschen
 - `/install` durchlaufen
 - Login prüfen
+- Profilbild‑Upload prüfen

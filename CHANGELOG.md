@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.1.1 - 2026-02-08
+- Update: Installierte Version wird nicht mehr auf eine niedrigere Version überschrieben.
+- Release-Metadaten im Update-Paket konsistent.
+
 ## v2.0.3 - 2026-02-08
 - Mobile Monatsnavigation: Kalendericon auch in der Einzelansicht aktiv.
 - Mobile Monatsnavigation: "Zur Monatsübersicht" ganz oben, keine Navigation/Monate-Header.

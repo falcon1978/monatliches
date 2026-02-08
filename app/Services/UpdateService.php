@@ -195,6 +195,22 @@ class UpdateService
             $version = config('app.version', '1.0.0');
         }
 
+        $existingVersion = null;
+        try {
+            if (Storage::disk('local')->exists('installed.lock')) {
+                $existingPayload = json_decode(Storage::disk('local')->get('installed.lock'), true);
+                if (is_array($existingPayload) && ! empty($existingPayload['version'])) {
+                    $existingVersion = (string) $existingPayload['version'];
+                }
+            }
+        } catch (\Throwable) {
+            // ignore read errors
+        }
+
+        if ($existingVersion && version_compare($existingVersion, $version, '>')) {
+            $version = $existingVersion;
+        }
+
         Storage::disk('local')->put(
             'installed.lock',
             json_encode([

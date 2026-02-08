@@ -1,7 +1,7 @@
 {
-  "version": "2.0.0",
+  "version": "2.0.1",
   "released_at": "2026-02-08",
-  "download_url": "https://github.com/falcon1978/monatliches/releases/download/2.0.0/monatliches-dist-v2.0.0.zip",
-  "sha256": "bcd3b978f52819717eea0b26fa8a142c9c71f1aac14b57b3065601287b8abc0b",
-  "changelog": "Update mobile-first UI notes, navigation icons, and recurring/account labels"
+  "download_url": "https://github.com/falcon1978/monatliches/releases/download/2.0.1/monatliches-dist-v2.0.1.zip",
+  "sha256": "ac1a297609c08f0fc43225c1da78750c99e45b0a1266e378aa57900501c8c583",
+  "changelog": "Mobile Monatsansicht: Header/Navi stabilisiert beim Scrollen."
 }

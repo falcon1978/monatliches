@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Account;
+use App\Models\Month;
 use App\Models\User;
 use App\Support\Installer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -175,12 +178,19 @@ class InstallController extends Controller
         ]);
 
         try {
-            User::create([
-                'name' => $data['name'],
-                'email' => $data['email'],
-                'password' => Hash::make($data['password']),
-                'is_admin' => true,
-            ]);
+            $user = DB::transaction(function () use ($data) {
+                $user = User::create([
+                    'name' => $data['name'],
+                    'email' => $data['email'],
+                    'password' => Hash::make($data['password']),
+                    'is_admin' => true,
+                    'employment_type' => 'employed',
+                ]);
+
+                $this->seedInitialData($user);
+
+                return $user;
+            });
         } catch (Throwable $exception) {
             Log::error('Installer admin creation failed.', [
                 'error' => $exception->getMessage(),
@@ -192,6 +202,32 @@ class InstallController extends Controller
         $request->session()->put('install.admin_created', true);
 
         return redirect()->route('install.finish');
+    }
+
+    private function seedInitialData(User $user): void
+    {
+        Account::createDefaultsForUser($user);
+
+        if (Month::forUser($user)->exists()) {
+            return;
+        }
+
+        $start = now()->startOfMonth();
+
+        for ($offset = 0; $offset < 12; $offset++) {
+            $monthStart = $start->copy()->addMonthsNoOverflow($offset)->startOfMonth();
+            $monthEnd = $monthStart->copy()->endOfMonth();
+            $name = ucfirst(str_replace('.', '', $monthStart->locale(app()->getLocale())->translatedFormat('M Y')));
+
+            Month::create([
+                'user_id' => $user->id,
+                'name' => $name,
+                'date_from' => $monthStart->toDateString(),
+                'date_to' => $monthEnd->toDateString(),
+                'daily_living_cost' => 0,
+                'is_current' => $offset === 0,
+            ]);
+        }
     }
 
     public function finish(Request $request)

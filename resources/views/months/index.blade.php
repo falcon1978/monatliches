@@ -2,7 +2,12 @@
     <x-slot name="header">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">Monatsübersicht</h2>
-            <a href="{{ route('months.create') }}" class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md text-sm">Monat erstellen</a>
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ route('months.create') }}" class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md text-sm">Monat erstellen</a>
+                <a href="{{ route('months.index', $showArchived ? [] : ['show_archived' => 1]) }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-md text-sm">
+                    {{ $showArchived ? 'Archivierte ausblenden' : 'Archivierte anzeigen' }}
+                </a>
+            </div>
         </div>
     </x-slot>
 
@@ -49,6 +54,9 @@
                                         <span>{{ $month->name }}</span>
                                         @if ($month->is_current)
                                             <span class="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800 dark:border-emerald-700/60 dark:bg-emerald-900/30 dark:text-emerald-200">Aktuell</span>
+                                        @endif
+                                        @if ($month->archived_at)
+                                            <span class="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600 dark:border-slate-600/60 dark:bg-slate-800/60 dark:text-slate-300">Archiviert</span>
                                         @endif
                                     </div>
                                     <div class="text-xs text-gray-500 dark:text-slate-400">{{ $month->date_from->format('d.m.Y') }} – {{ $month->date_to->format('d.m.Y') }}</div>

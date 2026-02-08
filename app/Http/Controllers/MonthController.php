@@ -21,10 +21,12 @@ class MonthController extends Controller
         $this->authorize('viewAny', Month::class);
 
         $user = request()->user();
-        $months = Month::forUser($user)
-            ->visible()
-            ->orderBy('date_from')
-            ->get();
+        $showArchived = request()->boolean('show_archived');
+        $monthsQuery = Month::forUser($user)->orderBy('date_from');
+        if (! $showArchived) {
+            $monthsQuery->visible();
+        }
+        $months = $monthsQuery->get();
 
         $holidays = collect();
         if ($months->isNotEmpty()) {
@@ -70,6 +72,7 @@ class MonthController extends Controller
             'months' => $months,
             'monthCards' => $monthCards,
             'isSelfEmployed' => $user?->isSelfEmployed() ?? false,
+            'showArchived' => $showArchived,
         ]);
     }
 

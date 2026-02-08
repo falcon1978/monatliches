@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.0.3 - 2026-02-08
+- Mobile Monatsnavigation: Kalendericon auch in der Einzelansicht aktiv.
+- Mobile Monatsnavigation: "Zur Monatsübersicht" ganz oben, keine Navigation/Monate-Header.
+
 ## v2.0.2 - 2026-02-08
 - Update-Dialog: Paket automatisch herunterladen und installieren.
 - Mobile Profil-Navigation: Update-Menüpunkt ergänzt.

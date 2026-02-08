@@ -1,5 +1,5 @@
 @php
-    $isDashboard = request()->routeIs('dashboard') || request()->routeIs('months.index');
+    $isDashboard = request()->routeIs('dashboard') || request()->routeIs('months.index') || request()->routeIs('months.show');
     $isTemplates = request()->routeIs('recurring-templates.*');
     $isAccounts = request()->routeIs('accounts.*');
     $isHolidays = request()->routeIs('holidays.*');
@@ -159,43 +159,40 @@
     <x-bottom-sheet show="homeOpen" close="homeOpen = false" title="Monat wählen">
         <div class="flex h-[calc(100vh-12rem)] max-h-[calc(100vh-12rem)] flex-col">
             <div class="space-y-3 shrink-0">
-                <div class="text-xs uppercase tracking-[0.2em] text-gray-500">Navigation</div>
-                <button
-                    type="button"
-                    class="touch-target w-full rounded-2xl border border-[var(--border)] bg-white/80 px-4 py-3 text-left text-base font-semibold text-gray-700 dark:bg-slate-900/80 dark:text-slate-100"
-                    @click="homeOpen = false; window.location = '{{ route('dashboard') }}';"
-                >
-                    Übersicht
-                </button>
-                @if ($monthsNav->isNotEmpty())
-                    <div class="text-[10px] uppercase tracking-[0.25em] text-gray-500">Monate</div>
-                @endif
             </div>
 
-            @if ($monthsNav->isNotEmpty())
-                <div class="mt-3 flex-1 overflow-y-auto pr-1">
-                    <div class="space-y-1.5">
-                        @foreach ($monthsNav as $monthNav)
-                            @php
-                                $isCurrent = $currentMonthId && (int) $currentMonthId === (int) $monthNav->id;
-                            @endphp
-                            <button
-                                type="button"
-                                class="touch-target w-full rounded-xl border border-[var(--border)] px-3 py-2 text-left {{ $isCurrent ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : 'bg-white/80 text-gray-700 dark:bg-slate-900/80 dark:text-slate-100' }}"
-                                @click="homeOpen = false; window.location = '{{ route('months.show', $monthNav) }}';"
-                            >
-                                <div class="flex items-center justify-between gap-2 text-sm">
-                                    <span class="font-semibold">{{ $monthNav->name }}</span>
-                                    <span class="text-[10px] text-gray-500">{{ $monthNav->date_from->format('d.m.Y') }} – {{ $monthNav->date_to->format('d.m.Y') }}</span>
-                                    @if ($isCurrent)
-                                        <x-icon-check class="h-4 w-4" />
-                                    @endif
-                                </div>
-                            </button>
-                        @endforeach
-                    </div>
+            <div class="mt-3 flex-1 overflow-y-auto pr-1">
+                <div class="space-y-1.5">
+                    <button
+                        type="button"
+                        class="touch-target w-full rounded-xl border border-[var(--border)] bg-white/80 px-3 py-2 text-left text-gray-700 dark:bg-slate-900/80 dark:text-slate-100"
+                        @click="homeOpen = false; window.location = '{{ route('months.index') }}';"
+                    >
+                        <div class="flex items-center justify-between gap-2 text-sm">
+                            <span class="font-semibold">Zur Monatsübersicht</span>
+                            <span class="text-[10px] text-gray-500">→</span>
+                        </div>
+                    </button>
+                    @foreach ($monthsNav as $monthNav)
+                        @php
+                            $isCurrent = $currentMonthId && (int) $currentMonthId === (int) $monthNav->id;
+                        @endphp
+                        <button
+                            type="button"
+                            class="touch-target w-full rounded-xl border border-[var(--border)] px-3 py-2 text-left {{ $isCurrent ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : 'bg-white/80 text-gray-700 dark:bg-slate-900/80 dark:text-slate-100' }}"
+                            @click="homeOpen = false; window.location = '{{ route('months.show', $monthNav) }}';"
+                        >
+                            <div class="flex items-center justify-between gap-2 text-sm">
+                                <span class="font-semibold">{{ $monthNav->name }}</span>
+                                <span class="text-[10px] text-gray-500">{{ $monthNav->date_from->format('d.m.Y') }} – {{ $monthNav->date_to->format('d.m.Y') }}</span>
+                                @if ($isCurrent)
+                                    <x-icon-check class="h-4 w-4" />
+                                @endif
+                            </div>
+                        </button>
+                    @endforeach
                 </div>
-            @endif
+            </div>
         </div>
     </x-bottom-sheet>
 </nav>

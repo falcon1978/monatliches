@@ -2,6 +2,6 @@
   "version": "2.0.0",
   "released_at": "2026-02-08",
   "download_url": "https://github.com/falcon1978/monatliches/releases/download/2.0.0/monatliches-dist-v2.0.0.zip",
-  "sha256": "578e97d1b5e20eb771837463b45de1dde8319067220b2e121fe180c4df198c30",
+  "sha256": "bcd3b978f52819717eea0b26fa8a142c9c71f1aac14b57b3065601287b8abc0b",
   "changelog": "Update mobile-first UI notes, navigation icons, and recurring/account labels"
 }

@@ -7,6 +7,7 @@ use App\Services\UpdateFeedService;
 use App\Services\UpdateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
@@ -106,6 +107,74 @@ class UpdateController extends Controller
             app(UpdateService::class)->applyZip($zipFullPath);
         } catch (Throwable $exception) {
             Log::error('Updater failed.', ['error' => $exception->getMessage()]);
+            Storage::disk('local')->append('update/update.log', '['.now()->toDateTimeString().'] Fehler: '.$exception->getMessage());
+            return back()->withErrors(['update' => 'Update fehlgeschlagen. Bitte Logs prüfen.']);
+        } finally {
+            File::delete($lockPath);
+        }
+
+        return back()->with('status', 'Update installiert.');
+    }
+
+    public function auto()
+    {
+        try {
+            $info = $this->feedService->fetchInfo();
+            if (! $info['update_available']) {
+                return back()->withErrors(['update' => 'Kein Update verfügbar.']);
+            }
+
+            if (empty($info['download_url'])) {
+                throw new RuntimeException('Update-Informationen sind unvollständig.');
+            }
+        } catch (Throwable $exception) {
+            Log::error('Auto-updater failed.', ['error' => $exception->getMessage()]);
+            return back()->withErrors(['update' => 'Update fehlgeschlagen. Bitte Logs prüfen.']);
+        }
+
+        $lockPath = storage_path('app/update.lock');
+        if (file_exists($lockPath)) {
+            return back()->withErrors(['update' => 'Ein Update läuft bereits. Bitte später erneut versuchen.']);
+        }
+
+        File::put($lockPath, now()->toIso8601String());
+        Storage::disk('local')->put('update/update.log', '['.now()->toDateTimeString().'] Auto-Update gestartet.');
+
+        try {
+            $updateDir = storage_path('app/update');
+            File::ensureDirectoryExists($updateDir, 0775, true);
+            if (! is_writable($updateDir)) {
+                throw new RuntimeException('Update-Verzeichnis ist nicht beschreibbar.');
+            }
+
+            $zipFullPath = $updateDir.'/package.zip';
+            $response = Http::timeout(120)
+                ->withOptions(['allow_redirects' => true])
+                ->sink($zipFullPath)
+                ->get($info['download_url']);
+
+            if (! $response->successful()) {
+                throw new RuntimeException('Update-Download fehlgeschlagen.');
+            }
+
+            Storage::disk('local')->append('update/update.log', '['.now()->toDateTimeString().'] ZIP heruntergeladen.');
+
+            if (! file_exists($zipFullPath) || filesize($zipFullPath) === 0) {
+                throw new RuntimeException('Download ist leer oder konnte nicht gespeichert werden.');
+            }
+
+            if (! empty($info['sha256'])) {
+                $expected = strtolower(trim((string) $info['sha256']));
+                $actual = strtolower((string) hash_file('sha256', $zipFullPath));
+                if ($expected !== '' && ! hash_equals($expected, $actual)) {
+                    throw new RuntimeException('SHA256 stimmt nicht überein.');
+                }
+                Storage::disk('local')->append('update/update.log', '['.now()->toDateTimeString().'] SHA256 geprüft.');
+            }
+
+            app(UpdateService::class)->applyZip($zipFullPath);
+        } catch (Throwable $exception) {
+            Log::error('Auto-updater failed.', ['error' => $exception->getMessage()]);
             Storage::disk('local')->append('update/update.log', '['.now()->toDateTimeString().'] Fehler: '.$exception->getMessage());
             return back()->withErrors(['update' => 'Update fehlgeschlagen. Bitte Logs prüfen.']);
         } finally {

@@ -145,6 +145,13 @@
                     </span>
                     <span aria-hidden="true">→</span>
                 </a>
+                <a href="{{ route('admin.update.show') }}" class="touch-target inline-flex items-center justify-between rounded-2xl border border-[var(--border)] bg-white/80 px-4 py-3 text-base font-semibold text-gray-700 dark:text-slate-100">
+                    <span class="flex items-center gap-3">
+                        <x-icon-receive class="h-5 w-5" />
+                        Update
+                    </span>
+                    <span aria-hidden="true">→</span>
+                </a>
             @endif
         </div>
     </x-bottom-sheet>

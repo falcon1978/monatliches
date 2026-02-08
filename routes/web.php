@@ -96,6 +96,7 @@ Route::middleware('installed')->group(function () {
             Route::get('update', [AdminUpdateController::class, 'show'])->name('update.show');
             Route::post('update/check', [AdminUpdateController::class, 'check'])->name('update.check');
             Route::post('update/download', [AdminUpdateController::class, 'download'])->name('update.download');
+            Route::post('update/auto', [AdminUpdateController::class, 'auto'])->name('update.auto');
             Route::post('update', [AdminUpdateController::class, 'run'])->name('update.run');
         });
 

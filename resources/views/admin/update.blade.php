@@ -45,7 +45,11 @@
 
                             @if ($info['update_available'])
                                 @if (! empty($info['download_url']))
-                                    <div class="flex justify-end">
+                                    <div class="flex flex-wrap justify-end gap-2">
+                                        <form method="POST" action="{{ route('admin.update.auto') }}" onsubmit="return confirm('Update jetzt herunterladen und installieren?');">
+                                            @csrf
+                                            <x-primary-button>Automatisch installieren</x-primary-button>
+                                        </form>
                                         <a href="{{ $info['download_url'] }}" target="_blank" rel="noopener" class="inline-flex items-center rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-500">
                                             ZIP herunterladen
                                         </a>

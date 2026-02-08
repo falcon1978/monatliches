@@ -37,8 +37,6 @@ class Account extends Model
         $defaults = [
             ['name' => 'Bank', 'type' => 'ist'],
             ['name' => 'Bar', 'type' => 'ist'],
-            ['name' => 'Kundeneinnahmen offen', 'type' => 'forecast'],
-            ['name' => 'Partnerin Verrechnung', 'type' => 'clearing'],
         ];
 
         foreach ($defaults as $account) {

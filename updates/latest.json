@@ -2,6 +2,6 @@
   "version": "1.6.8",
   "released_at": "2026-02-08",
   "download_url": "https://github.com/falcon1978/monatliches/releases/download/1.6.8/monatliches-dist-v1.6.8.zip",
-  "sha256": "63e7fc0702e6bc573a54d0d8dea0cfbdc59f0de46e4d79061ef273e2197892fb",
+  "sha256": "e319a0fa61341e2c96b4eaa2a60dd8ef9c22980f518c36fd50c95459d54c71a4",
   "changelog": "Installer: 12 Monate ab aktuellem Monat + Bar-Konto + aktueller Monat gesetzt. Monatsübersicht: archivierte Monate einblendbar."
 }

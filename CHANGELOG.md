@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.0.2 - 2026-02-08
+- Update-Dialog: Paket automatisch herunterladen und installieren.
+- Mobile Profil-Navigation: Update-Menüpunkt ergänzt.
+
 ## v2.0.1 - 2026-02-08
 - Mobile Monatsansicht: Header/Navi stabilisiert beim Scrollen.
 

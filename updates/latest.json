@@ -1,7 +1,7 @@
 {
-  "version": "2.1.0",
+  "version": "2.1.1",
   "released_at": "2026-02-08",
-  "download_url": "https://github.com/falcon1978/monatliches/releases/download/2.1.0/monatliches-dist-v2.1.0.zip",
-  "sha256": "340431c4cbebfd0726888924a0a516921443ea596556079725760b3a978f4610",
-  "changelog": "Hilfe- und Infotexte ergänzt; Tooltips konsistent und viewport-sicher; Mobile-Monatsansicht ohne Horizontal-Scroll."
+  "download_url": "https://github.com/falcon1978/monatliches/releases/download/2.1.1/monatliches-dist-v2.1.1.zip",
+  "sha256": "0ebc77dc0a103b2e972653c4a6b94e5b411d58fc8be8c75a7a768581d47a0f3b",
+  "changelog": "Update-Version stabilisiert; Release-Metadaten im Paket konsistent."
 }

@@ -1,7 +1,7 @@
 {
-  "version": "2.0.2",
+  "version": "2.0.3",
   "released_at": "2026-02-08",
-  "download_url": "https://github.com/falcon1978/monatliches/releases/download/2.0.2/monatliches-dist-v2.0.2.zip",
-  "sha256": "f7cd225c02b96cd45b68e83c3627a516181a2c0f3906a5e5930a25e82ed2a38c",
-  "changelog": "Update-Dialog: Paket automatisch herunterladen und installieren; Mobile Profil-Navigation: Update-Menüpunkt ergänzt."
+  "download_url": "https://github.com/falcon1978/monatliches/releases/download/2.0.3/monatliches-dist-v2.0.3.zip",
+  "sha256": "072ea4a305948d3679e7862e348e15291ce9ae275b59d146a5aa543c977dc0f2",
+  "changelog": "Mobile Monatsnavigation: Kalendericon auch in der Einzelansicht aktiv; Zur Monatsübersicht-Card oben."
 }

@@ -1,7 +1,7 @@
 {
-  "version": "2.0.3",
+  "version": "2.1.0",
   "released_at": "2026-02-08",
-  "download_url": "https://github.com/falcon1978/monatliches/releases/download/2.0.3/monatliches-dist-v2.0.3.zip",
-  "sha256": "072ea4a305948d3679e7862e348e15291ce9ae275b59d146a5aa543c977dc0f2",
-  "changelog": "Mobile Monatsnavigation: Kalendericon auch in der Einzelansicht aktiv; Zur Monatsübersicht-Card oben."
+  "download_url": "https://github.com/falcon1978/monatliches/releases/download/2.1.0/monatliches-dist-v2.1.0.zip",
+  "sha256": "340431c4cbebfd0726888924a0a516921443ea596556079725760b3a978f4610",
+  "changelog": "Hilfe- und Infotexte ergänzt; Tooltips konsistent und viewport-sicher; Mobile-Monatsansicht ohne Horizontal-Scroll."
 }

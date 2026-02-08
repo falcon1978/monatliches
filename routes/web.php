@@ -38,6 +38,9 @@ Route::middleware('installed')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])
             ->name('dashboard');
 
+        Route::view('/help', 'help')
+            ->name('help');
+
         Route::resource('accounts', AccountController::class)
             ->except(['show']);
 

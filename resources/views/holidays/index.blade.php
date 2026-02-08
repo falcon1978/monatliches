@@ -13,7 +13,7 @@
         <div class="w-full px-4 sm:px-6 lg:px-10 space-y-4">
             @if ($holidays->isEmpty())
                 <div class="bg-white dark:bg-slate-900/80 shadow sm:rounded-lg p-6 border accent-box">
-                    <p class="text-gray-600">Noch keine Ferien erfasst.</p>
+                    <p class="text-gray-600">Noch keine Ferien erfasst. Erfasse Ferien, um Lebensunterhalt und Arbeitstage korrekt zu berechnen.</p>
                 </div>
             @else
                 @php

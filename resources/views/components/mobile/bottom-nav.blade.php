@@ -64,8 +64,8 @@
     }"
     x-init="syncNavOffset(); $nextTick(() => syncNavOffset()); window.addEventListener('resize', () => syncNavOffset());"
 >
-    <div data-mobile-nav-bar class="bg-[var(--surface)] border-t border-[var(--border)] px-3 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
-        <div class="grid grid-cols-6 gap-2">
+    <div data-mobile-nav-bar class="bg-[var(--surface)] border-t border-[var(--border)] px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+        <div class="grid grid-cols-6 gap-1">
             <button type="button" class="touch-target h-11 w-11 inline-flex items-center justify-center rounded-full border border-[var(--border)] bg-white/80 dark:bg-slate-900/80 shadow-sm overflow-hidden" aria-label="Profil" @click="menuOpen = true">
                 @if ($photoUrl)
                     <img src="{{ $photoUrl }}" alt="Profilbild" class="h-full w-full object-cover block" />
@@ -132,6 +132,17 @@
                         <path d="M4 21a8 8 0 0 1 16 0" />
                     </svg>
                     Profil
+                </span>
+                <span aria-hidden="true">→</span>
+            </a>
+            <a href="{{ route('help') }}" class="touch-target inline-flex items-center justify-between rounded-2xl border border-[var(--border)] bg-white/80 px-4 py-3 text-base font-semibold text-gray-700 dark:text-slate-100">
+                <span class="flex items-center gap-3">
+                    <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="9" />
+                        <path d="M9.5 9.5a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4" />
+                        <circle cx="12" cy="17" r="1" />
+                    </svg>
+                    Hilfe & Docs
                 </span>
                 <span aria-hidden="true">→</span>
             </a>

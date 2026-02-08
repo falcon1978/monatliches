@@ -55,7 +55,7 @@
                     </div>
                 @empty
                     <div class="rounded-2xl border border-dashed border-[var(--border)] bg-white/70 dark:bg-slate-900/60 p-4 text-sm text-gray-500">
-                        Noch keine Konten vorhanden.
+                        Noch keine Konten vorhanden. Lege zuerst ein Ist‑Konto (Bank/Bar) an.
                     </div>
                 @endforelse
             </div>
@@ -80,7 +80,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="px-4 py-4 text-gray-500">Noch keine Konten vorhanden.</td>
+                                <td colspan="4" class="px-4 py-4 text-gray-500">Noch keine Konten vorhanden. Lege zuerst ein Ist‑Konto (Bank/Bar) an.</td>
                             </tr>
                         @endforelse
                     </tbody>

@@ -203,7 +203,10 @@
         <div class="rounded-xl border accent-box bg-white/80 dark:bg-slate-900/70 shadow-sm">
             <div class="p-3">
                 <div class="flex flex-wrap items-center justify-between gap-2">
-                    <div class="text-xs uppercase tracking-[0.2em] text-gray-500">Kontostände</div>
+                    <div class="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-gray-500">
+                        <span>Kontostände</span>
+                        <x-info-tooltip text="Kontostände kannst du jederzeit anpassen. Sie werden in jedem Monat angezeigt, ins Ergebnis zählt aber nur der aktuelle Monat." />
+                    </div>
                     <div class="text-sm font-semibold text-gray-800 dark:text-slate-100">Summe CHF {{ $fmt($balanceSum) }}</div>
                 </div>
                 <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
@@ -225,7 +228,10 @@
                             tabindex="0"
                             :class="editing ? 'ring-1 ring-[var(--accent)]/40' : ''"
                         >
-                            <div class="text-xs uppercase tracking-wide text-gray-500">{{ $account->name }}</div>
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="text-xs uppercase tracking-wide text-gray-500">{{ $account->name }}</div>
+                                <x-info-tooltip text="Kontostand hier jederzeit anpassen – ideal, wenn du kleine Ausgaben nicht einzeln erfassen willst." />
+                            </div>
                             <form method="POST" action="{{ route('months.balances.update', [$month, $account]) }}" class="mt-2 flex items-center gap-2">
                                 @csrf
                                 @method('PATCH')
@@ -259,7 +265,7 @@
         </div>
     @endif
 
-    <div class="relative overflow-hidden rounded-xl border accent-box bg-gradient-to-br from-emerald-50 via-white to-emerald-100/70 dark:from-emerald-950/40 dark:via-slate-950 dark:to-emerald-900/30 shadow-sm">
+    <div class="relative overflow-visible rounded-xl border accent-box bg-gradient-to-br from-emerald-50 via-white to-emerald-100/70 dark:from-emerald-950/40 dark:via-slate-950 dark:to-emerald-900/30 shadow-sm">
         <div class="pointer-events-none absolute -left-12 -top-8 h-24 w-24 rounded-full bg-emerald-200/50 dark:bg-emerald-500/10 blur-2xl"></div>
         <div class="pointer-events-none absolute -right-10 bottom-0 h-20 w-20 rounded-full bg-amber-200/40 dark:bg-amber-500/10 blur-2xl"></div>
         <div class="relative p-3">
@@ -382,26 +388,41 @@
             <div class="mt-2 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr),auto] items-center gap-3">
                 <div class="space-y-1 w-full min-w-0">
                     <div class="flex flex-wrap items-center justify-between gap-2 text-xs uppercase tracking-[0.2em] text-emerald-700/90">
-                        <span>Monatsergebnis</span>
+                        <div class="flex items-center gap-2">
+                            <span>Monatsergebnis</span>
+                            <x-info-tooltip text="Einnahmen minus offene Ausgaben/Fixkosten dieses Monats. Kontostände zählen nur im aktuellen Monat." />
+                        </div>
                     </div>
                     <div class="w-full rounded-lg px-3 py-2 text-center text-2xl font-semibold tabular-nums {{ $monthResultBarClass }}">
                         CHF {{ $fmt($metrics['result'] ?? 0) }}
                     </div>
                 </div>
                 <div class="space-y-1 w-full lg:justify-self-end">
-                    <div class="text-xs uppercase tracking-[0.2em] text-emerald-700/90">Kummuliert ab heute</div>
+                    <div class="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-emerald-700/90">
+                        <span>Kummuliert ab heute</span>
+                        <x-info-tooltip text="Zeigt, was ab heute bis Monatsende übrig bleibt (Einnahmen minus Ausgaben/Fixkosten ab heute)." />
+                    </div>
                     <div class="grid grid-cols-1 {{ $hideWorkdayMetrics ? '' : 'sm:grid-cols-3' }} gap-2 w-full max-w-none sm:max-w-[50vw]">
                         <div class="rounded-lg border accent-box bg-white/80 dark:bg-slate-900/70 px-2 py-1">
-                            <div class="text-xs uppercase tracking-wide text-gray-500">Resultat</div>
+                            <div class="flex items-center gap-2 text-xs uppercase tracking-wide text-gray-500">
+                                <span>Resultat</span>
+                                <x-info-tooltip text="Kumuliertes Ergebnis ab heute." />
+                            </div>
                             <div class="text-sm font-semibold tabular-nums {{ $resultTextClass }}">{{ $fmt($metrics['cumulative_result'] ?? 0) }}</div>
                         </div>
                         @if (! $hideWorkdayMetrics)
                             <div class="rounded-lg border accent-box bg-white/80 dark:bg-slate-900/70 px-2 py-1">
-                                <div class="text-xs uppercase tracking-wide text-gray-500">Arbeitstage</div>
+                                <div class="flex items-center gap-2 text-xs uppercase tracking-wide text-gray-500">
+                                    <span>Arbeitstage</span>
+                                    <x-info-tooltip text="Verbleibende Arbeitstage ab heute (nur für Selbstständige)." />
+                                </div>
                                 <div class="text-sm font-semibold tabular-nums text-gray-900">{{ $metrics['cumulative_workdays'] ?? 0 }}</div>
                             </div>
                             <div class="rounded-lg border accent-box bg-white/80 dark:bg-slate-900/70 px-2 py-1">
-                                <div class="text-xs uppercase tracking-wide text-gray-500">Umsatz/AT</div>
+                                <div class="flex items-center gap-2 text-xs uppercase tracking-wide text-gray-500">
+                                    <span>Umsatz/AT</span>
+                                    <x-info-tooltip text="Erforderlicher Umsatz pro Arbeitstag ab heute." />
+                                </div>
                                 <div class="text-sm font-semibold tabular-nums {{ $resultTextClass }}">{{ $fmt($metrics['required_revenue_per_workday_from_today'] ?? 0) }}</div>
                             </div>
                         @endif

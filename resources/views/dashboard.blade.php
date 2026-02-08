@@ -31,7 +31,7 @@
         <div class="w-full px-4 sm:px-6 lg:px-10 mt-4 sm:mt-0">
             @if (! $hasMonths)
                 <div class="border accent-box bg-white dark:bg-slate-900/80 p-6 rounded-2xl shadow-sm">
-                    <p class="text-gray-600">Noch keine Monate vorhanden. Lege deinen ersten Monat an.</p>
+                    <p class="text-gray-600">Noch keine Monate vorhanden. Lege deinen ersten Monat an und erfasse danach Konten sowie Einnahmen/Ausgaben.</p>
                 </div>
             @else
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">

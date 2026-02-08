@@ -13,8 +13,23 @@
                 );
             @endphp
             @if ($months->isEmpty())
+                <div
+                    x-data="{ show: localStorage.getItem('onboardingDismissed') !== '1' }"
+                    x-init="$watch('show', value => value === false && localStorage.setItem('onboardingDismissed','1'))"
+                    x-show="show"
+                    class="mb-4 border border-emerald-200/70 bg-emerald-50/80 text-emerald-900 p-4 rounded-2xl accent-box"
+                >
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="space-y-2 text-sm">
+                            <div class="text-[11px] uppercase tracking-[0.25em] text-emerald-700">Start hier</div>
+                            <div class="font-semibold">Lege zuerst deinen ersten Monat an – danach Konten und Einträge.</div>
+                            <div class="text-emerald-800/90">Schritte: Monat anlegen → Konten erfassen → Einnahmen & Ausgaben eintragen → optional wiederkehrende Posten.</div>
+                        </div>
+                        <button type="button" class="text-xs font-semibold underline underline-offset-4" @click="show = false">Ausblenden</button>
+                    </div>
+                </div>
                 <div class="bg-white dark:bg-slate-900/80 shadow sm:rounded-lg p-6 accent-box border rounded-2xl">
-                    <p class="text-gray-600">Noch keine Monate vorhanden.</p>
+                    <p class="text-gray-600">Noch keine Monate vorhanden. Starte mit „Monat erstellen“, um die Planung zu beginnen.</p>
                 </div>
             @else
                 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -70,24 +85,42 @@
                                 <div class="text-xs text-gray-400 dark:text-slate-500">→</div>
                             </div>
 
-                            <div class="mt-4 rounded-2xl px-3 py-3 text-center text-2xl font-semibold tabular-nums {{ $resultBoxClass }} {{ $resultClass }}">
-                                CHF {{ $fmt($result) }}
+                            <div class="mt-4">
+                                <div class="flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-emerald-700/90">
+                                    <span>Monatsergebnis</span>
+                                    <x-info-tooltip text="Einnahmen minus offene Ausgaben/Fixkosten dieses Monats. Kontostände zählen nur im aktuellen Monat." />
+                                </div>
+                                <div class="mt-2 rounded-2xl px-3 py-3 text-center text-2xl font-semibold tabular-nums {{ $resultBoxClass }} {{ $resultClass }}">
+                                    CHF {{ $fmt($result) }}
+                                </div>
                             </div>
 
                             <div class="mt-3">
-                                <div class="text-[10px] uppercase tracking-[0.25em] text-gray-500 dark:text-slate-400">Kummuliert ab heute</div>
+                                <div class="flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-gray-500 dark:text-slate-400">
+                                    <span>Kummuliert ab heute</span>
+                                    <x-info-tooltip text="Zeigt, was ab heute bis Monatsende übrig bleibt (Einnahmen minus Ausgaben/Fixkosten ab heute)." />
+                                </div>
                                 <div class="mt-2 grid grid-cols-1 {{ $isSelfEmployed ? 'sm:grid-cols-3' : '' }} gap-2 text-xs text-gray-600 dark:text-slate-300">
                                     <div class="flex items-center justify-between rounded-md bg-white/70 dark:bg-slate-900/60 px-2 py-1">
-                                        <span>Resultat</span>
+                                        <span class="flex items-center gap-2">
+                                            Resultat
+                                            <x-info-tooltip text="Kumuliertes Ergebnis ab heute." />
+                                        </span>
                                         <span class="font-semibold tabular-nums {{ $cumulativeClass }}">CHF {{ $fmt($cumulativeResult) }}</span>
                                     </div>
                                     @if ($isSelfEmployed)
                                         <div class="flex items-center justify-between rounded-md bg-white/70 dark:bg-slate-900/60 px-2 py-1">
-                                            <span>Arbeitstage</span>
+                                            <span class="flex items-center gap-2">
+                                                Arbeitstage
+                                                <x-info-tooltip text="Verbleibende Arbeitstage ab heute." />
+                                            </span>
                                             <span class="font-semibold tabular-nums text-gray-900">{{ $cumulative['workdays_sum'] ?? 0 }}</span>
                                         </div>
                                         <div class="flex items-center justify-between rounded-md bg-white/70 dark:bg-slate-900/60 px-2 py-1">
-                                            <span>Umsatz/AT</span>
+                                            <span class="flex items-center gap-2">
+                                                Umsatz/AT
+                                                <x-info-tooltip text="Erforderlicher Umsatz pro Arbeitstag ab heute." />
+                                            </span>
                                             <span class="font-semibold tabular-nums {{ $cumulativeClass }}">CHF {{ $fmt($cumulative['required_per_workday'] ?? 0) }}</span>
                                         </div>
                                     @endif
@@ -96,20 +129,32 @@
 
                             <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-gray-600 dark:text-slate-300">
                                 <div class="flex items-center justify-between rounded-md bg-white/70 dark:bg-slate-900/60 px-2 py-1">
-                                    <span>Einnahmen</span>
+                                    <span class="flex items-center gap-2">
+                                        Einnahmen
+                                        <x-info-tooltip text="Offene Einnahmen im Monat." />
+                                    </span>
                                     <span class="font-semibold tabular-nums text-gray-900 dark:text-slate-100">CHF {{ $fmt($metrics['income_total'] ?? 0) }}</span>
                                 </div>
                                 <div class="flex items-center justify-between rounded-md bg-white/70 dark:bg-slate-900/60 px-2 py-1">
-                                    <span>Ausgaben</span>
+                                    <span class="flex items-center gap-2">
+                                        Ausgaben
+                                        <x-info-tooltip text="Offene Ausgaben plus Lebensunterhalt." />
+                                    </span>
                                     <span class="font-semibold tabular-nums text-gray-900 dark:text-slate-100">CHF {{ $fmt($openExpensesTotal) }}</span>
                                 </div>
                                 @if ($isSelfEmployed)
                                     <div class="flex items-center justify-between rounded-md bg-white/70 dark:bg-slate-900/60 px-2 py-1">
-                                        <span>Arbeitstage</span>
+                                        <span class="flex items-center gap-2">
+                                            Arbeitstage
+                                            <x-info-tooltip text="Verbleibende Arbeitstage im Monat." />
+                                        </span>
                                         <span class="font-semibold tabular-nums text-gray-900 dark:text-slate-100">{{ $metrics['workdays_remaining'] ?? 0 }}</span>
                                     </div>
                                     <div class="flex items-center justify-between rounded-md bg-white/70 dark:bg-slate-900/60 px-2 py-1">
-                                        <span>Umsatz/AT</span>
+                                        <span class="flex items-center gap-2">
+                                            Umsatz/AT
+                                            <x-info-tooltip text="Erforderlicher Umsatz pro verbleibendem Arbeitstag." />
+                                        </span>
                                         <span class="font-semibold tabular-nums {{ $resultClass }}">CHF {{ $fmt($metrics['required_revenue_per_workday'] ?? 0) }}</span>
                                     </div>
                                 @endif

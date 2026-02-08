@@ -63,7 +63,7 @@
 
             @if ($templates->isEmpty())
                 <div class="bg-white dark:bg-slate-900/80 shadow sm:rounded-lg p-6 border accent-box">
-                    <p class="text-gray-600">Noch keine wiederkehrenden Posten vorhanden.</p>
+                    <p class="text-gray-600">Noch keine wiederkehrenden Posten vorhanden. Lege Vorlagen für Einnahmen oder Fixkosten an, damit sie automatisch in neue Monate übernommen werden.</p>
                 </div>
             @else
                 <div class="space-y-6">

@@ -34,7 +34,10 @@
                         @csrf
 
                         <div>
-                            <x-input-label for="kind" value="Typ" />
+                            <div class="flex items-center gap-2">
+                                <x-input-label for="kind" value="Typ" />
+                                <x-info-tooltip text="Einnahme oder Fixkosten? Wird als Vorlage in neue Monate übernommen." />
+                            </div>
                             <select id="kind" name="kind" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" x-model="kind" required>
                                 <option value="">Bitte wählen</option>
                                 <option value="income">Wiederkehrende Einnahme</option>
@@ -44,27 +47,42 @@
 
                         <div x-show="kind" x-cloak class="space-y-4">
                             <div>
-                                <x-input-label for="name" value="Name" />
+                                <div class="flex items-center gap-2">
+                                    <x-input-label for="name" value="Name" />
+                                    <x-info-tooltip text="z.B. Miete, Lohn, Versicherung" />
+                                </div>
                                 <x-text-input id="name" name="name" class="mt-1 block w-full" type="text" value="{{ old('name') }}" required />
                             </div>
 
                             <div>
-                                <x-input-label for="amount" value="Betrag" />
+                                <div class="flex items-center gap-2">
+                                    <x-input-label for="amount" value="Betrag" />
+                                    <x-info-tooltip text="CHF‑Betrag der Vorlage pro Monat" />
+                                </div>
                                 <x-text-input id="amount" name="amount" class="mt-1 block w-full" type="number" step="0.01" value="{{ old('amount') }}" required />
                             </div>
 
                             <div x-show="kind === 'fixcost'" x-cloak>
-                                <x-input-label for="remaining_amount" value="Restbetrag (optional)" />
+                                <div class="flex items-center gap-2">
+                                    <x-input-label for="remaining_amount" value="Restbetrag (optional)" />
+                                    <x-info-tooltip text="Praktisch für Raten oder begrenzte Fixkosten" />
+                                </div>
                                 <x-text-input id="remaining_amount" name="remaining_amount" class="mt-1 block w-full" type="number" step="0.01" value="{{ old('remaining_amount') }}" />
                             </div>
 
                             <div x-show="kind === 'fixcost'" x-cloak>
-                                <x-input-label for="ends_on" value="Enddatum (optional)" />
+                                <div class="flex items-center gap-2">
+                                    <x-input-label for="ends_on" value="Enddatum (optional)" />
+                                    <x-info-tooltip text="Ab diesem Datum wird die Vorlage nicht mehr übernommen" />
+                                </div>
                                 <x-text-input id="ends_on" name="ends_on" class="mt-1 block w-full" type="date" value="{{ old('ends_on') }}" />
                             </div>
 
                             <div>
-                                <x-input-label value="Frequenz (Monate)" />
+                                <div class="flex items-center gap-2">
+                                    <x-input-label value="Frequenz (Monate)" />
+                                    <x-info-tooltip text="Legt fest, in welchen Monaten die Vorlage auftaucht" />
+                                </div>
                                 <div class="mt-2 flex flex-wrap gap-2">
                                     <label class="cursor-pointer">
                                         <input type="checkbox" class="peer sr-only" x-model="allMonths" @change="toggleAll()">

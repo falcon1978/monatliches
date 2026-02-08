@@ -11,7 +11,7 @@
     @endphp
     <div
         id="month-swipe-root"
-        class="py-6"
+        class="py-6 overflow-x-hidden"
         @if ($prevMonth) data-prev-url="{{ route('months.show', $prevMonth) }}" @endif
         @if ($nextMonth) data-next-url="{{ route('months.show', $nextMonth) }}" @endif
     >

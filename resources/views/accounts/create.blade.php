@@ -17,13 +17,19 @@
                         @csrf
 
                         <div>
-                            <x-input-label for="name" value="Name" />
+                            <div class="flex items-center gap-2">
+                                <x-input-label for="name" value="Name" />
+                                <x-info-tooltip text="z.B. Privatkonto, Cash, Sparkonto" />
+                            </div>
                             <x-text-input id="name" name="name" class="mt-1 block w-full" type="text" value="{{ old('name') }}" required />
                             <x-input-error :messages="$errors->get('name')" class="mt-2" />
                         </div>
 
                         <div>
-                            <x-input-label for="type" value="Typ" />
+                            <div class="flex items-center gap-2">
+                                <x-input-label for="type" value="Typ" />
+                                <x-info-tooltip text="Ist = echte Konten, Erwartet = offene Beträge, Verrechnung = interne Ausgleiche" />
+                            </div>
                             <select id="type" name="type" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-[var(--accent)] focus:ring-[var(--accent)]" required x-model="kind">
                                 <option value="ist" @selected(old('type') === 'ist')>Ist (Bank/Bar)</option>
                                 <option value="forecast" @selected(old('type') === 'forecast')>Erwartet (Offen)</option>
@@ -33,7 +39,10 @@
                         </div>
 
                         <div x-show="kind === 'ist' || kind === 'clearing'" x-cloak>
-                            <x-input-label for="initial_balance" value="Startsaldo (CHF)" />
+                            <div class="flex items-center gap-2">
+                                <x-input-label for="initial_balance" value="Startsaldo (CHF)" />
+                                <x-info-tooltip text="Wird im aktuellen Monat als Basis für das Ergebnis verwendet" />
+                            </div>
                             <x-text-input
                                 id="initial_balance"
                                 name="initial_balance"

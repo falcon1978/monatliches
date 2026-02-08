@@ -11,32 +11,47 @@
                         @csrf
 
                         <div>
-                            <x-input-label for="name" value="Name" />
+                            <div class="flex items-center gap-2">
+                                <x-input-label for="name" value="Name" />
+                                <x-info-tooltip text="z.B. März 2026" />
+                            </div>
                             <x-text-input id="name" name="name" class="mt-1 block w-full" type="text" value="{{ old('name') }}" required />
                             <x-input-error :messages="$errors->get('name')" class="mt-2" />
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <x-input-label for="date_from" value="Von" />
+                                <div class="flex items-center gap-2">
+                                    <x-input-label for="date_from" value="Von" />
+                                    <x-info-tooltip text="Startdatum des Monats" />
+                                </div>
                                 <x-text-input id="date_from" name="date_from" class="mt-1 block w-full" type="date" value="{{ old('date_from') }}" required />
                                 <x-input-error :messages="$errors->get('date_from')" class="mt-2" />
                             </div>
                             <div>
-                                <x-input-label for="date_to" value="Bis" />
+                                <div class="flex items-center gap-2">
+                                    <x-input-label for="date_to" value="Bis" />
+                                    <x-info-tooltip text="Enddatum des Monats" />
+                                </div>
                                 <x-text-input id="date_to" name="date_to" class="mt-1 block w-full" type="date" value="{{ old('date_to') }}" required />
                                 <x-input-error :messages="$errors->get('date_to')" class="mt-2" />
                             </div>
                         </div>
 
                         <div>
-                            <x-input-label for="daily_living_cost" value="Lebensunterhalt pro Tag (CHF)" />
+                            <div class="flex items-center gap-2">
+                                <x-input-label for="daily_living_cost" value="Lebensunterhalt pro Tag (CHF)" />
+                                <x-info-tooltip text="Tagesbudget für Lebenshaltungskosten im Monat" />
+                            </div>
                             <x-text-input id="daily_living_cost" name="daily_living_cost" class="mt-1 block w-full" type="number" step="0.01" value="{{ old('daily_living_cost') }}" required />
                             <x-input-error :messages="$errors->get('daily_living_cost')" class="mt-2" />
                         </div>
 
                         <div>
-                            <x-input-label for="source_month_id" value="Optional: Monat kopieren" />
+                            <div class="flex items-center gap-2">
+                                <x-input-label for="source_month_id" value="Optional: Monat kopieren" />
+                                <x-info-tooltip text="Einstellungen und Einträge aus einem bestehenden Monat übernehmen" />
+                            </div>
                             <select id="source_month_id" name="source_month_id" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
                                 <option value="">Keine Vorlage</option>
                                 @foreach ($months as $month)
@@ -51,6 +66,7 @@
                         <div class="flex items-center gap-2">
                             <input id="import_templates" name="import_templates" type="checkbox" value="1" class="rounded border-gray-300 text-[var(--accent)] shadow-sm focus:ring-[var(--accent)]" @checked(old('import_templates', true))>
                             <label for="import_templates" class="text-sm text-gray-700">Wiederkehrende Posten übernehmen</label>
+                            <x-info-tooltip text="Kopiert alle Vorlagen direkt in den neuen Monat" />
                         </div>
 
                         <div class="flex justify-end gap-3">

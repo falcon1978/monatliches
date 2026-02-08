@@ -4,7 +4,30 @@ import Alpine from 'alpinejs';
 
 window.Alpine = Alpine;
 
-Alpine.start();
+Alpine.data('balanceEditor', (value, display) => ({
+    editing: false,
+    value,
+    display,
+    focusInput() {
+        this.editing = true;
+        this.$nextTick(() => this.$refs.input?.focus());
+    },
+    sync() {
+        this.value = (this.display || '').toString().replace(/'/g, '').replace(',', '.');
+    },
+    format() {
+        const normalized = (this.display || '').toString().replace(/'/g, '').replace(',', '.');
+        const num = parseFloat(normalized);
+        if (Number.isNaN(num)) {
+            return;
+        }
+        const fixed = num.toFixed(2);
+        const parts = fixed.split('.');
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, "'");
+        this.display = parts.join('.');
+        this.value = fixed;
+    },
+}));
 
 const getPreferredTheme = () => {
     const stored = window.localStorage.getItem('theme');
@@ -74,4 +97,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     applyAccentFavicon();
+
+    document.addEventListener('submit', (event) => {
+        if (event.defaultPrevented) {
+            return;
+        }
+        const button = event.submitter;
+        if (!button) {
+            return;
+        }
+        button.dataset.loading = 'true';
+        button.disabled = true;
+    });
 });
+
+Alpine.start();

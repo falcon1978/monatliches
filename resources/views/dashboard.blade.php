@@ -1,4 +1,4 @@
-<x-app-layout>
+<x-app-layout :mobile-title="'3-Monats-Übersicht'">
     <x-slot name="header">
         <div class="flex flex-wrap items-center justify-between gap-4">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">3-Monats-Übersicht</h2>
@@ -19,16 +19,25 @@
     @endphp
 
     <div class="py-6">
-        <div class="w-full px-4 sm:px-6 lg:px-10">
+        <div class="sm:hidden w-full px-4">
+            <div class="grid grid-cols-1 gap-2">
+                <a href="{{ route('months.create') }}" class="touch-target inline-flex items-center justify-center rounded-2xl bg-[var(--accent)] text-white text-base font-semibold">Neuen Monat anlegen</a>
+                <form method="POST" action="{{ route('months.next') }}">
+                    @csrf
+                    <button type="submit" class="touch-target w-full rounded-2xl border border-[var(--border)] bg-white/80 text-base font-semibold text-gray-700 dark:text-slate-100">Nächsten Monat automatisch erstellen</button>
+                </form>
+            </div>
+        </div>
+        <div class="w-full px-4 sm:px-6 lg:px-10 mt-4 sm:mt-0">
             @if (! $hasMonths)
-                <div class="border accent-box bg-white dark:bg-slate-900/80 p-6">
+                <div class="border accent-box bg-white dark:bg-slate-900/80 p-6 rounded-2xl shadow-sm">
                     <p class="text-gray-600">Noch keine Monate vorhanden. Lege deinen ersten Monat an.</p>
                 </div>
             @else
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     @foreach ($monthBlocks as $block)
                         @if (! $block)
-                            <div class="border border-dashed accent-box bg-white dark:bg-slate-900/80 p-4 text-sm text-gray-500">
+                            <div class="border border-dashed accent-box bg-white dark:bg-slate-900/80 p-5 text-sm text-gray-500 rounded-2xl">
                                 <div class="text-xs uppercase tracking-wide text-gray-400">Monat</div>
                                 <div class="text-lg font-semibold text-gray-500">Noch nicht angelegt</div>
                                 <div class="mt-4">Lege den nächsten Monat an.</div>
@@ -39,12 +48,12 @@
                                 $metrics = $block['metrics'];
                                 $resultClass = $metrics['result'] < 0 ? 'text-red-700 dark:text-red-200' : 'text-green-800 dark:text-emerald-200';
                             @endphp
-                            <a href="{{ route('months.show', $month) }}" class="block border accent-box bg-white dark:bg-slate-900/80 p-4 hover:bg-gray-50 dark:hover:bg-slate-900 transition">
-                                <div class="text-xs uppercase tracking-wide text-gray-500">Monat</div>
-                                <div class="text-lg font-semibold text-gray-900">{{ $month->name }}</div>
+                            <a href="{{ route('months.show', $month) }}" class="block border accent-box bg-white dark:bg-slate-900/80 p-5 rounded-2xl shadow-sm hover:bg-gray-50 dark:hover:bg-slate-900 transition">
+                                <div class="text-[11px] uppercase tracking-[0.3em] text-gray-500">Monat</div>
+                                <div class="text-xl font-semibold text-gray-900 dark:text-slate-100">{{ $month->name }}</div>
                                 <div class="text-xs text-gray-500">{{ $month->date_from->format('d.m.Y') }} – {{ $month->date_to->format('d.m.Y') }}</div>
 
-                                <div class="mt-4 space-y-2 text-sm tabular-nums">
+                                <div class="mt-4 space-y-2 text-base tabular-nums">
                                     <div class="flex items-center justify-between">
                                         <span>Resultat</span>
                                         <span class="font-semibold {{ $resultClass }}">CHF {{ $fmt($metrics['result']) }}</span>

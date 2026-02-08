@@ -28,7 +28,20 @@
                             $selectedMonths = array_filter(array_map('intval', explode(',', (string) $selectedMonths)));
                         }
                     @endphp
-                    <form method="POST" action="{{ route('recurring-templates.update', $template) }}" class="space-y-4" x-data="{ kind: '{{ old('kind', $currentKind) }}' }">
+                    <form
+                        method="POST"
+                        action="{{ route('recurring-templates.update', $template) }}"
+                        class="space-y-4"
+                        x-data="{
+                            kind: '{{ old('kind', $currentKind) }}',
+                            months: @js($selectedMonths).map(String),
+                            allMonths: {{ count($selectedMonths) === 12 ? 'true' : 'false' }},
+                            toggleAll() {
+                                this.months = this.allMonths ? ['1','2','3','4','5','6','7','8','9','10','11','12'] : [];
+                            }
+                        }"
+                        x-effect="allMonths = months.length === 12"
+                    >
                         @csrf
                         @method('PUT')
 
@@ -65,9 +78,15 @@
                             <div>
                                 <x-input-label value="Frequenz (Monate)" />
                                 <div class="mt-2 flex flex-wrap gap-2">
+                                    <label class="cursor-pointer">
+                                        <input type="checkbox" class="peer sr-only" x-model="allMonths" @change="toggleAll()">
+                                        <span class="inline-flex items-center rounded-full border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-700 peer-checked:border-[var(--accent)] peer-checked:bg-[var(--accent)] peer-checked:text-white">
+                                            Alle
+                                        </span>
+                                    </label>
                                     @foreach ($monthOptions as $number => $label)
                                         <label class="cursor-pointer">
-                                            <input type="checkbox" name="months[]" value="{{ $number }}" class="peer sr-only" @checked(in_array($number, $selectedMonths, true))>
+                                            <input type="checkbox" name="months[]" value="{{ $number }}" class="peer sr-only" x-model="months">
                                             <span class="inline-flex items-center rounded-full border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-700 peer-checked:border-[var(--accent)] peer-checked:bg-[var(--accent)] peer-checked:text-white">
                                                 {{ $label }}
                                             </span>

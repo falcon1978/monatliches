@@ -2,6 +2,7 @@
     $fmt = fn ($value) => new \Illuminate\Support\HtmlString(
         number_format((float) $value, 2, '.', "'")
     );
+    $json = fn ($value) => json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     $today = now()->startOfDay();
     $pendingTemplates = $pendingTemplates ?? 0;
     $showMonthHeader = $showMonthHeader ?? false;
@@ -100,16 +101,43 @@
         ? 'bg-gradient-to-r from-red-200 via-red-100 to-red-200 text-red-800 border border-red-200/70 dark:from-red-900/40 dark:via-red-900/20 dark:to-red-900/40 dark:text-red-200 dark:border-red-700/60'
         : 'bg-gradient-to-r from-emerald-200 via-emerald-100 to-emerald-200 text-emerald-900 border border-emerald-200/70 dark:from-emerald-900/40 dark:via-emerald-900/20 dark:to-emerald-900/40 dark:text-emerald-200 dark:border-emerald-700/60';
     $hideWorkdayMetrics = auth()->user()?->employment_type === 'employed';
+    $statusLabels = ['open' => 'Offen', 'partial' => 'Teilbezahlt', 'paid' => 'Bezahlt'];
+    $statusClasses = [
+        'open' => 'border border-amber-200/70 bg-amber-100/80 text-amber-900 dark:border-amber-700/60 dark:bg-amber-900/30 dark:text-amber-100',
+        'partial' => 'border border-blue-200/70 bg-blue-100/80 text-blue-900 dark:border-blue-700/60 dark:bg-blue-900/30 dark:text-blue-100',
+        'paid' => 'border border-emerald-200/70 bg-emerald-100/80 text-emerald-900 dark:border-emerald-700/60 dark:bg-emerald-900/30 dark:text-emerald-100',
+    ];
+    $incomePaymentMap = $incomes->mapWithKeys(fn ($entry) => [$entry->id => (float) $entry->open_amount]);
+    $firstIncomeId = $incomes->first()?->id;
+    $payableEntries = $expenses->concat($fixcosts);
+    $payableActionMap = $payableEntries->mapWithKeys(fn ($entry) => [$entry->id => route('entries.pay', $entry)]);
+    $firstPayableId = $payableEntries->first()?->id;
 @endphp
 
-<div class="space-y-4" x-data="{ entriesOpen: {{ ($entriesOpen ?? false) ? 'true' : 'false' }}, editing: false }" x-init="if (entriesOpen) { $nextTick(() => $refs.entriesSection?.scrollIntoView({ behavior: 'smooth', block: 'start' })) }">
+<div
+    class="space-y-4"
+    x-data="{
+        entriesOpen: {{ ($entriesOpen ?? false) ? 'true' : 'false' }},
+        editing: false,
+        sheet: {{ $json(request()->boolean('quick_add') ? 'quick' : null) }},
+        payAction: null,
+        payLabel: '',
+        paymentEntryId: null,
+        paymentAmount: null,
+        incomePaymentMap: {{ $json($incomePaymentMap) }},
+        payableEntryId: {{ $json($firstPayableId) }},
+        payableActionMap: {{ $json($payableActionMap) }},
+    }"
+    x-init="if (entriesOpen) { $nextTick(() => $refs.entriesSection?.scrollIntoView({ behavior: 'smooth', block: 'start' })) }"
+    x-on:open-quick-add.window="sheet = 'quick'"
+>
 
     @if ($pendingTemplates > 0)
         <div class="border border-amber-200 bg-amber-50 text-amber-900 p-3 text-sm flex flex-wrap items-center justify-between gap-3 accent-box">
             <div>Für diesen Monat sind {{ $pendingTemplates }} neue wiederkehrende Posten verfügbar.</div>
             <form method="POST" action="{{ route('months.import-templates', $month) }}">
                 @csrf
-                <button type="submit" class="px-3 py-1.5 bg-[var(--accent)] text-white rounded text-xs">Übernehmen</button>
+                <button type="submit" class="touch-target px-4 py-2 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold">Übernehmen</button>
             </form>
         </div>
     @endif
@@ -171,11 +199,134 @@
         </div>
     @endif
 
+    @if ($balanceAccounts->isNotEmpty())
+        <div class="rounded-xl border accent-box bg-white/80 dark:bg-slate-900/70 shadow-sm">
+            <div class="p-3">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="text-xs uppercase tracking-[0.2em] text-gray-500">Kontostände</div>
+                    <div class="text-sm font-semibold text-gray-800 dark:text-slate-100">Summe CHF {{ $fmt($balanceSum) }}</div>
+                </div>
+                <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
+                    @foreach ($balanceAccounts as $account)
+                        @php
+                            $balance = $balanceAmounts[$account->id] ?? 0;
+                            $balanceClass = $balance < 0 ? 'text-red-700' : 'text-gray-900';
+                            $balanceInput = number_format((float) $balance, 2, '.', '');
+                            $balanceDisplay = number_format((float) $balance, 2, '.', "'");
+                        @endphp
+                        <div
+                            class="w-full rounded-lg border accent-box bg-white/80 dark:bg-slate-900/70 px-3 py-2 transition hover:shadow-sm cursor-pointer"
+                            x-data="balanceEditor({{ $json($balanceInput) }}, {{ $json($balanceDisplay) }})"
+                            @click="if (!editing) { focusInput() }"
+                            @keydown.enter.prevent="if (!editing) { focusInput() }"
+                            @keydown.space.prevent="if (!editing) { focusInput() }"
+                            @click.outside="editing = false; format()"
+                            role="button"
+                            tabindex="0"
+                            :class="editing ? 'ring-1 ring-[var(--accent)]/40' : ''"
+                        >
+                            <div class="text-xs uppercase tracking-wide text-gray-500">{{ $account->name }}</div>
+                            <form method="POST" action="{{ route('months.balances.update', [$month, $account]) }}" class="mt-2 flex items-center gap-2">
+                                @csrf
+                                @method('PATCH')
+                                <div class="flex-1">
+                                    <div x-show="!editing" class="flex items-baseline justify-end gap-2">
+                                        <span class="text-[10px] uppercase tracking-[0.2em] text-gray-400">CHF</span>
+                                        <span class="text-lg font-semibold tabular-nums {{ $balanceClass }}">{{ $fmt($balance) }}</span>
+                                    </div>
+                                    <div x-show="editing" x-cloak class="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-white/90 dark:bg-slate-900/80 px-3 py-2 shadow-inner">
+                                        <span class="text-[10px] uppercase tracking-[0.2em] text-gray-400">CHF</span>
+                                        <input type="hidden" name="amount" x-model="value">
+                                        <input
+                                            x-ref="input"
+                                            type="text"
+                                            inputmode="decimal"
+                                            x-model="display"
+                                            class="flex-1 bg-transparent border-0 p-0 text-base font-semibold text-right tabular-nums text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-0"
+                                            @input="sync()"
+                                            @blur="format()"
+                                            @keydown.enter.stop.prevent="$el.form.submit()"
+                                            @keydown.escape="editing = false"
+                                        >
+                                    </div>
+                                </div>
+                                <button x-show="editing" x-cloak type="submit" class="touch-target px-3 py-2 bg-[var(--accent)] text-white rounded-xl text-xs font-semibold shadow-sm">OK</button>
+                            </form>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    @endif
+
     <div class="relative overflow-hidden rounded-xl border accent-box bg-gradient-to-br from-emerald-50 via-white to-emerald-100/70 dark:from-emerald-950/40 dark:via-slate-950 dark:to-emerald-900/30 shadow-sm">
         <div class="pointer-events-none absolute -left-12 -top-8 h-24 w-24 rounded-full bg-emerald-200/50 dark:bg-emerald-500/10 blur-2xl"></div>
         <div class="pointer-events-none absolute -right-10 bottom-0 h-20 w-20 rounded-full bg-amber-200/40 dark:bg-amber-500/10 blur-2xl"></div>
         <div class="relative p-3">
-            <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-emerald-800/80 dark:text-emerald-200/80">
+            <div class="sm:hidden space-y-2">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <div class="text-[11px] uppercase tracking-[0.35em] text-gray-500">Monat</div>
+                        <div class="flex items-center gap-2">
+                            @can('update', $month)
+                                <a href="{{ route('months.edit', $month) }}" class="touch-target inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border)] bg-white/70 text-gray-500" aria-label="Monat bearbeiten">
+                                    <x-icon-edit class="h-4 w-4" />
+                                </a>
+                            @endcan
+                            <div class="text-xl font-semibold text-gray-900 dark:text-slate-100 truncate">{{ $month->name }}</div>
+                        </div>
+                    </div>
+                    <div class="shrink-0 flex flex-col items-end gap-1 text-[11px] text-gray-600">
+                        <div>
+                            @if ($month->is_current)
+                                <span class="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800">Aktuell</span>
+                            @else
+                                <form method="POST" action="{{ route('months.current', $month) }}" onsubmit="return confirm('Diesen Monat als aktuellen Monat setzen?');">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="is_current" value="1">
+                                    <button type="submit" class="inline-flex items-center rounded-full border border-gray-300 bg-white/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600">
+                                        Nicht aktuell
+                                    </button>
+                                </form>
+                            @endif
+                        </div>
+                        <div class="flex flex-wrap items-center justify-end gap-1">
+                            @if ($canRollover ?? false)
+                                <form method="POST" action="{{ route('months.rollover', $month) }}" onsubmit="return confirm('Offene Posten nach {{ $nextMonth?->name }} übertragen?');">
+                                    @csrf
+                                    <button type="submit" class="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                                        Übertragen
+                                    </button>
+                                </form>
+                            @endif
+                            @if ($canRevert ?? false)
+                                <form method="POST" action="{{ route('months.rollover.revert', $month) }}" onsubmit="return confirm('Übertrag aus {{ $prevMonth?->name }} rückgängig machen?');">
+                                    @csrf
+                                    <button type="submit" class="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-700">
+                                        Übertrag rückgängig
+                                    </button>
+                                </form>
+                            @endif
+                            @if ($canArchive ?? false)
+                                <form method="POST" action="{{ route('months.archive', $month) }}" onsubmit="return confirm('Monat archivieren?');">
+                                    @csrf
+                                    @method('PATCH')
+                                    <button type="submit" class="inline-flex items-center rounded-full border border-gray-300 bg-white/80 px-2 py-0.5 text-[10px] font-semibold text-gray-700">
+                                        Archivieren
+                                    </button>
+                                </form>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+                <div class="text-xs text-gray-600 dark:text-slate-300">
+                    {{ $month->date_from->format('d.m.Y') }} – {{ $month->date_to->format('d.m.Y') }}
+                    <span class="mx-1 text-gray-400">·</span>
+                    Lebensunterhalt/Tag CHF {{ $fmt($month->daily_living_cost) }}
+                </div>
+            </div>
+            <div class="hidden sm:flex flex-wrap items-center justify-between gap-2 text-xs text-emerald-800/80 dark:text-emerald-200/80">
                 <div class="flex flex-wrap items-center gap-2">
                     @can('update', $month)
                         <button type="button" x-show="!editing" @click="editing = true; $nextTick(() => $refs.editName?.focus())" class="inline-flex items-center accent-icon hover:opacity-80" title="Monat bearbeiten" aria-label="Monat bearbeiten">
@@ -183,16 +334,12 @@
                         </button>
                     @endcan
                     <span class="text-xs font-semibold text-gray-900 dark:text-slate-100">{{ $month->name }}</span>
-                    @if ($month->is_current)
-                        <span class="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800">Aktuell</span>
-                    @endif
                     <span class="text-gray-400">•</span>
                     <span>{{ $month->date_from->format('d.m.Y') }} – {{ $month->date_to->format('d.m.Y') }}</span>
                     <span class="text-gray-400">·</span>
                     <span>Lebensunterhalt/Tag CHF {{ $fmt($month->daily_living_cost) }}</span>
-                    <button type="button" class="inline-flex items-center gap-1 rounded-full border border-[var(--accent)] bg-white/80 dark:bg-slate-900/70 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--accent)] transition hover:opacity-80" @click="entriesOpen = true; $nextTick(() => $refs.entriesSection?.scrollIntoView({ behavior: 'smooth', block: 'start' }))">
-                        Einträge
-                    </button>
+                </div>
+                <div class="flex items-center gap-2">
                     @if ($canRollover ?? false)
                         <form method="POST" action="{{ route('months.rollover', $month) }}" onsubmit="return confirm('Offene Posten nach {{ $nextMonth?->name }} übertragen?');">
                             @csrf
@@ -218,66 +365,24 @@
                             </button>
                         </form>
                     @endif
+                    @if ($month->is_current)
+                        <span class="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800">Aktuell</span>
+                    @else
+                        <form method="POST" action="{{ route('months.current', $month) }}" onsubmit="return confirm('Diesen Monat als aktuellen Monat setzen?');">
+                            @csrf
+                            @method('PATCH')
+                            <input type="hidden" name="is_current" value="1">
+                            <button type="submit" class="inline-flex items-center rounded-full border border-gray-300 bg-white/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600">
+                                Nicht aktuell
+                            </button>
+                        </form>
+                    @endif
                 </div>
             </div>
-            @can('update', $month)
-                <form x-show="editing" x-cloak x-ref="editForm" method="POST" action="{{ route('months.update', $month) }}" class="mt-2 flex flex-wrap items-end gap-2 text-xs">
-                    @csrf
-                    @method('PUT')
-                    <input x-ref="editName" type="text" name="name" value="{{ $month->name }}" class="h-8 w-40 rounded border border-gray-300 bg-white/80 px-2 text-xs text-gray-900 focus:border-[var(--accent)] focus:ring-[var(--accent)]" required>
-                    <input type="date" name="date_from" value="{{ $month->date_from->format('Y-m-d') }}" class="h-8 rounded border border-gray-300 bg-white/80 px-2 text-xs text-gray-700 focus:border-[var(--accent)] focus:ring-[var(--accent)]" required>
-                    <input type="date" name="date_to" value="{{ $month->date_to->format('Y-m-d') }}" class="h-8 rounded border border-gray-300 bg-white/80 px-2 text-xs text-gray-700 focus:border-[var(--accent)] focus:ring-[var(--accent)]" required>
-                    <input type="number" step="0.01" name="daily_living_cost" value="{{ number_format((float) $month->daily_living_cost, 2, '.', '') }}" class="h-8 w-28 rounded border border-gray-300 bg-white/80 px-2 text-sm text-right tabular-nums text-gray-700 focus:border-[var(--accent)] focus:ring-[var(--accent)]" required>
-                    <button type="submit" class="h-8 rounded bg-[var(--accent)] px-3 text-xs font-semibold text-white">Speichern</button>
-                    <button type="button" class="h-8 rounded border border-gray-300 px-3 text-xs font-semibold text-gray-600" @click="editing = false; $nextTick(() => $refs.editForm?.reset())">Abbrechen</button>
-                </form>
-            @endcan
-            @if ($balanceAccounts->isNotEmpty())
-                <div class="mt-3">
-                    <div class="flex flex-wrap items-center justify-between gap-2">
-                        <div class="text-xs uppercase tracking-[0.2em] text-gray-500">Kontostände</div>
-                        <div class="text-sm font-semibold text-gray-800 dark:text-slate-100">Summe CHF {{ $fmt($balanceSum) }}</div>
-                    </div>
-                    <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
-                        @foreach ($balanceAccounts as $account)
-                            @php
-                                $balance = $balanceAmounts[$account->id] ?? 0;
-                                $balanceClass = $balance < 0 ? 'text-red-700' : 'text-gray-900';
-                                $balanceInput = number_format((float) $balance, 2, '.', '');
-                            @endphp
-                            <div class="w-full rounded-lg border accent-box bg-white/80 dark:bg-slate-900/70 px-3 py-2">
-                                <div class="text-xs uppercase tracking-wide text-gray-500">{{ $account->name }}</div>
-                                <div class="mt-1 flex items-center justify-between gap-2">
-                                    <div x-data="{ editing: false, value: '{{ $balanceInput }}' }" @click.outside="editing = false" class="w-full">
-                                        <form method="POST" action="{{ route('months.balances.update', [$month, $account]) }}" class="flex items-center justify-between gap-2">
-                                            @csrf
-                                            @method('PATCH')
-                                            <button type="button" x-show="!editing" @click="editing = true; $nextTick(() => $refs.input.focus())" class="text-right tabular-nums text-lg font-semibold {{ $balanceClass }}">
-                                                {{ $fmt($balance) }}
-                                            </button>
-                                            <input x-ref="input" x-show="editing" x-cloak type="number" step="0.01" name="amount" x-model="value" class="w-24 border border-gray-300 rounded px-2 py-1 text-sm text-right tabular-nums focus:border-[var(--accent)] focus:ring-[var(--accent)]" @keydown.enter.stop.prevent="$el.form.submit()" @keydown.escape="editing = false">
-                                            <button x-show="editing" x-cloak type="submit" class="px-2 py-1 bg-[var(--accent)] text-white rounded text-xs">OK</button>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-            @endif
             <div class="mt-2 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr),auto] items-center gap-3">
                 <div class="space-y-1 w-full min-w-0">
                     <div class="flex flex-wrap items-center justify-between gap-2 text-xs uppercase tracking-[0.2em] text-emerald-700/90">
                         <span>Monatsergebnis</span>
-                        <form method="POST" action="{{ route('months.current', $month) }}">
-                            @csrf
-                            @method('PATCH')
-                            <input type="hidden" name="is_current" value="{{ $includeBalanceInResult ? 0 : 1 }}">
-                            <button type="submit" role="switch" aria-checked="{{ $includeBalanceInResult ? 'true' : 'false' }}" class="inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-white/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 transition hover:opacity-80">
-                                <span>Aktueller Monat</span>
-                                <span class="{{ $includeBalanceInResult ? 'text-emerald-700' : 'text-gray-400' }}">{{ $includeBalanceInResult ? 'Ein' : 'Aus' }}</span>
-                            </button>
-                        </form>
                     </div>
                     <div class="w-full rounded-lg px-3 py-2 text-center text-2xl font-semibold tabular-nums {{ $monthResultBarClass }}">
                         CHF {{ $fmt($metrics['result'] ?? 0) }}
@@ -303,10 +408,298 @@
                     </div>
                 </div>
             </div>
+            @can('update', $month)
+                <form x-show="editing" x-cloak x-ref="editForm" method="POST" action="{{ route('months.update', $month) }}" class="mt-2 hidden sm:flex flex-wrap items-end gap-2 text-xs">
+                    @csrf
+                    @method('PUT')
+                    <input x-ref="editName" type="text" name="name" value="{{ $month->name }}" class="h-8 w-40 rounded border border-gray-300 bg-white/80 px-2 text-xs text-gray-900 focus:border-[var(--accent)] focus:ring-[var(--accent)]" required>
+                    <input type="date" name="date_from" value="{{ $month->date_from->format('Y-m-d') }}" class="h-8 rounded border border-gray-300 bg-white/80 px-2 text-xs text-gray-700 focus:border-[var(--accent)] focus:ring-[var(--accent)]" required>
+                    <input type="date" name="date_to" value="{{ $month->date_to->format('Y-m-d') }}" class="h-8 rounded border border-gray-300 bg-white/80 px-2 text-xs text-gray-700 focus:border-[var(--accent)] focus:ring-[var(--accent)]" required>
+                    <input type="number" step="0.01" name="daily_living_cost" value="{{ number_format((float) $month->daily_living_cost, 2, '.', '') }}" class="h-8 w-28 rounded border border-gray-300 bg-white/80 px-2 text-sm text-right tabular-nums text-gray-700 focus:border-[var(--accent)] focus:ring-[var(--accent)]" required>
+                    <button type="submit" class="h-8 rounded bg-[var(--accent)] px-3 text-xs font-semibold text-white">Speichern</button>
+                    <button type="button" class="h-8 rounded border border-gray-300 px-3 text-xs font-semibold text-gray-600" @click="editing = false; $nextTick(() => $refs.editForm?.reset())">Abbrechen</button>
+                </form>
+            @endcan
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+    <div class="sm:hidden space-y-4">
+        <section class="space-y-2">
+            <div class="sticky top-[var(--mobile-header-offset)] z-[850] bg-[var(--surface-2)] px-4 -mx-4 pt-2 pb-2 border-b border-[var(--border)]">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Einnahmen</h3>
+                        <div class="text-xs text-gray-500">Offen</div>
+                    </div>
+                    <div class="text-base font-semibold text-gray-900 dark:text-slate-100">CHF {{ $fmt($incomeSum) }}</div>
+                </div>
+            </div>
+            @php
+                $forecastIncomeGroups = $customerIncomes->groupBy('account_id');
+                $forecastAccountIds = $forecastAccounts->pluck('id')->all();
+                $ungroupedForecastIncomes = $customerIncomes->filter(fn ($income) => ! in_array($income->account_id, $forecastAccountIds, true));
+                $hasIncomeCards = $customerIncomes->isNotEmpty()
+                    || $recurringIncomes->isNotEmpty()
+                    || $manualIncomes->isNotEmpty();
+            @endphp
+
+            @if (! $hasIncomeCards)
+                <div class="rounded-2xl border border-dashed border-[var(--border)] bg-green-50/60 dark:bg-emerald-950/20 p-4 text-sm text-gray-500">Keine offenen Einnahmen.</div>
+            @else
+                <div class="space-y-3">
+                    @foreach ($forecastAccounts as $forecastAccount)
+                        @php
+                            $accountIncomes = $forecastIncomeGroups->get($forecastAccount->id, collect());
+                        @endphp
+                        @if ($accountIncomes->isNotEmpty())
+                            <div class="sticky top-[var(--mobile-subheader-offset)] z-[840] bg-[var(--surface-2)] px-4 -mx-4 py-1 border-b border-[var(--border)] text-[11px] uppercase tracking-[0.25em] text-emerald-700/80">
+                                Erwartet · {{ $forecastAccount->name }}
+                            </div>
+                            <div class="space-y-1.5">
+                                @foreach ($accountIncomes as $income)
+                                    @include('months.partials.mobile-income-card', ['income' => $income])
+                                @endforeach
+                            </div>
+                        @endif
+                    @endforeach
+
+                    @if ($ungroupedForecastIncomes->isNotEmpty())
+                        <div class="sticky top-[var(--mobile-subheader-offset)] z-[840] bg-[var(--surface-2)] px-4 -mx-4 py-1 border-b border-[var(--border)] text-[11px] uppercase tracking-[0.25em] text-emerald-700/80">
+                            Erwartete Einnahmen
+                        </div>
+                        <div class="space-y-1.5">
+                            @foreach ($ungroupedForecastIncomes as $income)
+                                @include('months.partials.mobile-income-card', ['income' => $income])
+                            @endforeach
+                        </div>
+                    @endif
+
+                    @if ($recurringIncomes->isNotEmpty())
+                        <div class="sticky top-[var(--mobile-subheader-offset)] z-[840] bg-[var(--surface-2)] px-4 -mx-4 py-1 border-b border-[var(--border)] text-[11px] uppercase tracking-[0.25em] text-emerald-700/80">
+                            Wiederkehrende Einnahmen
+                        </div>
+                        <div class="space-y-1.5">
+                            @foreach ($recurringIncomes as $income)
+                                @include('months.partials.mobile-income-card', ['income' => $income])
+                            @endforeach
+                        </div>
+                    @endif
+
+                    @if ($manualIncomes->isNotEmpty())
+                        <div class="sticky top-[var(--mobile-subheader-offset)] z-[840] bg-[var(--surface-2)] px-4 -mx-4 py-1 border-b border-[var(--border)] text-[11px] uppercase tracking-[0.25em] text-emerald-700/80">
+                            Weitere Einnahmen
+                        </div>
+                        <div class="space-y-1.5">
+                            @foreach ($manualIncomes as $income)
+                                @include('months.partials.mobile-income-card', ['income' => $income])
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+            @endif
+        </section>
+
+        <section class="space-y-2">
+            <div class="sticky top-[var(--mobile-header-offset)] z-[850] bg-[var(--surface-2)] px-4 -mx-4 pt-2 pb-2 border-b border-[var(--border)]">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Rechnungen</h3>
+                        <div class="text-xs text-gray-500">Offen</div>
+                    </div>
+                    <div class="text-base font-semibold text-gray-900 dark:text-slate-100">CHF {{ $fmt($expenseSum) }}</div>
+                </div>
+            </div>
+            <div class="space-y-1.5">
+                @forelse ($expenses as $expense)
+                    @php
+                        $carryoverLabel = $expense->originMonth?->name ?? $expense->movedFromMonth?->name;
+                    @endphp
+                    <div class="rounded-2xl border border-[var(--border)] bg-blue-50/70 dark:bg-blue-950/30 shadow-sm p-2.5">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="min-w-0 flex items-center gap-2">
+                                <a href="{{ route('entries.edit', $expense) }}" class="touch-target inline-flex items-center justify-center rounded-full text-gray-400 hover:text-gray-700" aria-label="Bearbeiten">
+                                    <x-icon-edit class="h-4 w-4" />
+                                </a>
+                                @if (! empty($prevMonth) || ! empty($nextMonth))
+                                    <div class="flex items-center gap-1 text-gray-400 shrink-0">
+                                        @if (! empty($prevMonth))
+                                            <form method="POST" action="{{ route('entries.move-prev-month', $expense) }}" onsubmit="return confirm('Eintrag in den Vormonat verschieben?');">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="touch-target inline-flex items-center justify-center rounded-full hover:text-gray-700" aria-label="Zum Vormonat" title="Zum Vormonat">
+                                                    <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                        <path d="M15 18l-6-6 6-6" />
+                                                    </svg>
+                                                </button>
+                                            </form>
+                                        @endif
+                                        @if (! empty($nextMonth))
+                                            <form method="POST" action="{{ route('entries.move-next-month', $expense) }}" onsubmit="return confirm('Eintrag in den nächsten Monat verschieben?');">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="touch-target inline-flex items-center justify-center rounded-full hover:text-gray-700" aria-label="Zum nächsten Monat" title="Zum nächsten Monat">
+                                                    <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                        <path d="M9 18l6-6-6-6" />
+                                                    </svg>
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                @endif
+                                <div class="min-w-0 flex-1">
+                                    <div class="text-sm font-semibold text-gray-900 dark:text-slate-100 truncate">{{ $expense->description }}</div>
+                                    @if ($carryoverLabel)
+                                        <div class="mt-1 text-[10px] font-semibold uppercase tracking-wide text-amber-800">Aus {{ $carryoverLabel }}</div>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <div class="text-sm font-semibold tabular-nums text-gray-900 dark:text-slate-100">CHF {{ $fmt($expense->amount) }}</div>
+                                <button type="button" class="touch-target inline-flex items-center justify-center rounded-full text-[var(--accent)]" aria-label="Bezahlt markieren" title="Bezahlt markieren" @click="sheet = 'mark-paid'; payAction = {{ $json(route('entries.pay', $expense)) }}; payLabel = {{ $json($expense->description) }}">
+                                    <x-icon-check class="h-4 w-4" />
+                                </button>
+                            </div>
+                        </div>
+                        <div class="sr-only">Bezahlt markieren</div>
+                    </div>
+                @empty
+                    <div class="rounded-2xl border border-dashed border-[var(--border)] bg-blue-50/60 dark:bg-blue-950/20 p-4 text-sm text-gray-500">Keine Rechnungen.</div>
+                @endforelse
+            </div>
+        </section>
+
+        <section class="space-y-2">
+            <div class="sticky top-[var(--mobile-header-offset)] z-[850] bg-[var(--surface-2)] px-4 -mx-4 pt-2 pb-2 border-b border-[var(--border)]">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Fixkosten</h3>
+                        <div class="text-xs text-gray-500">Offen</div>
+                    </div>
+                    <div class="text-base font-semibold text-gray-900 dark:text-slate-100">CHF {{ $fmt($fixcostOpenSum) }}</div>
+                </div>
+            </div>
+            <div class="space-y-1.5">
+                @if ($includeCurrentLivingCost)
+                    <div class="rounded-2xl border border-[var(--border)] bg-amber-50/70 dark:bg-amber-950/30 shadow-sm p-2.5">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <div class="text-base font-semibold text-gray-900 dark:text-slate-100">{{ $livingLabel }}</div>
+                            </div>
+                            <div class="text-lg font-semibold tabular-nums text-gray-900 dark:text-slate-100">CHF {{ $fmt($livingCostBase) }}</div>
+                        </div>
+                        <div class="sr-only">Fix</div>
+                    </div>
+                @endif
+                @if ($holidayCustomLivingCost > 0)
+                    <div class="rounded-2xl border border-[var(--border)] bg-amber-50/70 dark:bg-amber-950/30 shadow-sm p-2.5">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <div class="text-base font-semibold text-gray-900 dark:text-slate-100">Ferien-Lebensunterhalt</div>
+                            </div>
+                            <div class="text-lg font-semibold tabular-nums text-gray-900 dark:text-slate-100">CHF {{ $fmt($holidayCustomLivingCost) }}</div>
+                        </div>
+                        <div class="sr-only">Fix</div>
+                    </div>
+                @endif
+                @if ($nextMonthLivingCostBase > 0)
+                    <div class="rounded-2xl border border-[var(--border)] bg-amber-50/70 dark:bg-amber-950/30 shadow-sm p-2.5">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <div class="text-base font-semibold text-gray-900 dark:text-slate-100">Lebensunterhalt nächster Monat</div>
+                            </div>
+                            <div class="text-lg font-semibold tabular-nums text-gray-900 dark:text-slate-100">CHF {{ $fmt($nextMonthLivingCostBase) }}</div>
+                        </div>
+                        <div class="sr-only">Fix</div>
+                    </div>
+                @endif
+                @if ($nextMonthHolidayCustomLivingCost > 0)
+                    <div class="rounded-2xl border border-[var(--border)] bg-amber-50/70 dark:bg-amber-950/30 shadow-sm p-2.5">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <div class="text-base font-semibold text-gray-900 dark:text-slate-100">Ferien-Lebensunterhalt nächster Monat</div>
+                            </div>
+                            <div class="text-lg font-semibold tabular-nums text-gray-900 dark:text-slate-100">CHF {{ $fmt($nextMonthHolidayCustomLivingCost) }}</div>
+                        </div>
+                        <div class="sr-only">Fix</div>
+                    </div>
+                @endif
+                @forelse ($fixcosts as $fixcost)
+                    @php
+                        $isPaid = $fixcost->status === 'paid';
+                        $openAmount = $isPaid ? 0 : (float) $fixcost->amount;
+                    @endphp
+                    @php
+                        $carryoverLabel = $fixcost->originMonth?->name ?? $fixcost->movedFromMonth?->name;
+                    @endphp
+                    <div class="rounded-2xl border border-[var(--border)] bg-amber-50/70 dark:bg-amber-950/30 shadow-sm p-2.5">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="min-w-0 flex items-center gap-2">
+                                <a href="{{ route('entries.edit', $fixcost) }}" class="touch-target inline-flex items-center justify-center rounded-full text-gray-400 hover:text-gray-700" aria-label="Bearbeiten">
+                                    <x-icon-edit class="h-4 w-4" />
+                                </a>
+                                @if (! empty($prevMonth) || ! empty($nextMonth))
+                                    <div class="flex items-center gap-1 text-gray-400 shrink-0">
+                                        @if (! empty($prevMonth))
+                                            <form method="POST" action="{{ route('entries.move-prev-month', $fixcost) }}" onsubmit="return confirm('Eintrag in den Vormonat verschieben?');">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="touch-target inline-flex items-center justify-center rounded-full hover:text-gray-700" aria-label="Zum Vormonat" title="Zum Vormonat">
+                                                    <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                        <path d="M15 18l-6-6 6-6" />
+                                                    </svg>
+                                                </button>
+                                            </form>
+                                        @endif
+                                        @if (! empty($nextMonth))
+                                            <form method="POST" action="{{ route('entries.move-next-month', $fixcost) }}" onsubmit="return confirm('Eintrag in den nächsten Monat verschieben?');">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="touch-target inline-flex items-center justify-center rounded-full hover:text-gray-700" aria-label="Zum nächsten Monat" title="Zum nächsten Monat">
+                                                    <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                        <path d="M9 18l6-6-6-6" />
+                                                    </svg>
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                @endif
+                                <div class="min-w-0 flex-1">
+                                    <div class="text-sm font-semibold text-gray-900 dark:text-slate-100 truncate">{{ $fixcost->description }}</div>
+                                    @if ($carryoverLabel)
+                                        <div class="mt-1 text-[10px] font-semibold uppercase tracking-wide text-amber-800">Aus {{ $carryoverLabel }}</div>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <div class="text-sm font-semibold tabular-nums text-gray-900 dark:text-slate-100">CHF {{ $fmt($openAmount) }}</div>
+                                @if (! $isPaid)
+                                    <button type="button" class="touch-target inline-flex items-center justify-center rounded-full text-[var(--accent)]" aria-label="Bezahlt markieren" title="Bezahlt markieren" @click="sheet = 'mark-paid'; payAction = {{ $json(route('entries.pay', $fixcost)) }}; payLabel = {{ $json($fixcost->description) }}">
+                                        <x-icon-check class="h-4 w-4" />
+                                    </button>
+                                @else
+                                    <form method="POST" action="{{ route('entries.toggle-paid', $fixcost) }}">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="touch-target inline-flex items-center justify-center rounded-full text-gray-400 hover:text-gray-700" aria-label="Rückgängig" title="Rückgängig">
+                                            <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                <path d="M3 12a9 9 0 1 0 3-6.7" />
+                                                <path d="M3 4v6h6" />
+                                            </svg>
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="sr-only">Statusaktion</div>
+                    </div>
+                @empty
+                    <div class="rounded-2xl border border-dashed border-[var(--border)] bg-amber-50/60 dark:bg-amber-950/20 p-4 text-sm text-gray-500">Keine Fixkosten.</div>
+                @endforelse
+            </div>
+        </section>
+    </div>
+
+    <div class="hidden sm:grid grid-cols-1 lg:grid-cols-3 gap-3">
         <x-section-table title="Einnahmen" sum="{{ $fmt($incomeSum) }}" bg-class="bg-green-50 dark:bg-emerald-950/30" x-data="{ moveMode: false, addExpected: false }">
             <x-slot name="actions">
                 <button type="button" class="inline-flex h-6 w-6 items-center justify-center rounded border border-[var(--accent)] bg-white/80 text-xs font-semibold text-[var(--accent)] transition hover:text-[var(--accent)]" :class="moveMode ? 'border-[var(--accent)] bg-[var(--accent)] text-white' : ''" @click="moveMode = !moveMode" title="Verschieben" aria-label="Verschieben">
@@ -395,13 +788,13 @@
                         <tr x-data="{
                             editing: false,
                             payOpen: false,
-                            description: @js($income->description),
-                            amount: @js($incomeAmountInput),
-                            amountDisplay: @js($incomeAmountDisplay),
-                            originalDescription: @js($income->description),
-                            originalAmount: @js($incomeAmountInput),
-                            originalAmountDisplay: @js($incomeAmountDisplay),
-                            paymentAmount: @js($openAmount),
+                            description: {{ $json($income->description) }},
+                            amount: {{ $json($incomeAmountInput) }},
+                            amountDisplay: {{ $json($incomeAmountDisplay) }},
+                            originalDescription: {{ $json($income->description) }},
+                            originalAmount: {{ $json($incomeAmountInput) }},
+                            originalAmountDisplay: {{ $json($incomeAmountDisplay) }},
+                            paymentAmount: {{ $json($openAmount) }},
                             syncAmount() {
                                 this.amount = (this.amountDisplay || '').toString().replace(/'/g, '').replace(',', '.');
                             },
@@ -435,6 +828,12 @@
                                     @include('months.partials.carryover-badge', ['entry' => $income])
                                 </div>
                                 <input x-show="editing" x-cloak x-ref="description" type="text" name="description" form="{{ $incomeEditId }}" x-model="description" class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:border-[var(--accent)] focus:ring-[var(--accent)]" @keydown.enter.stop.prevent="$el.form.submit()">
+                                @if ($income->recurringTemplate)
+                                    <div x-show="editing" x-cloak class="mt-1 text-[11px] text-gray-500">
+                                        Änderung gilt nur für diesen Monat. Willst du die Einnahme generell anpassen,
+                                        <a href="{{ route('recurring-templates.edit', $income->recurringTemplate) }}" class="font-semibold underline">klicke hier</a>.
+                                    </div>
+                                @endif
                                 @if ($income->recurringTemplate && ($income->recurringTemplate->remaining_amount !== null || $income->recurringTemplate->ends_on))
                                     <div class="text-xs text-gray-500">
                                         @if ($income->recurringTemplate->remaining_amount !== null)
@@ -453,12 +852,12 @@
                                 <div class="{{ $actionStackClass }}">
                                     <div class="{{ $actionRowClass }}">
                                         <div x-show="!editing" class="flex items-center justify-end gap-2">
-                                            <form x-show="moveMode" x-cloak method="POST" action="{{ route('entries.move-prev-month', $income) }}">
+                                            <form x-show="moveMode" x-cloak method="POST" action="{{ route('entries.move-prev-month', $income) }}" onsubmit="return confirm('Eintrag in den Vormonat verschieben?');">
                                                 @csrf
                                                 @method('PATCH')
                                                 <button type="submit" class="text-xs text-[var(--accent)] underline" title="Vorheriger Monat">←</button>
                                             </form>
-                                            <form x-show="moveMode" x-cloak method="POST" action="{{ route('entries.move-next-month', $income) }}">
+                                            <form x-show="moveMode" x-cloak method="POST" action="{{ route('entries.move-next-month', $income) }}" onsubmit="return confirm('Eintrag in den nächsten Monat verschieben?');">
                                                 @csrf
                                                 @method('PATCH')
                                                 <button type="submit" class="text-xs text-[var(--accent)] underline" title="Nächster Monat">→</button>
@@ -522,13 +921,13 @@
                             <tr x-data="{
                                 editing: false,
                                 payOpen: false,
-                                description: @js($income->description),
-                                amount: @js($incomeAmountInput),
-                                amountDisplay: @js($incomeAmountDisplay),
-                                originalDescription: @js($income->description),
-                                originalAmount: @js($incomeAmountInput),
-                                originalAmountDisplay: @js($incomeAmountDisplay),
-                                paymentAmount: @js($openAmount),
+                                description: {{ $json($income->description) }},
+                                amount: {{ $json($incomeAmountInput) }},
+                                amountDisplay: {{ $json($incomeAmountDisplay) }},
+                                originalDescription: {{ $json($income->description) }},
+                                originalAmount: {{ $json($incomeAmountInput) }},
+                                originalAmountDisplay: {{ $json($incomeAmountDisplay) }},
+                                paymentAmount: {{ $json($openAmount) }},
                                 syncAmount() {
                                     this.amount = (this.amountDisplay || '').toString().replace(/'/g, '').replace(',', '.');
                                 },
@@ -562,6 +961,12 @@
                                         @include('months.partials.carryover-badge', ['entry' => $income])
                                     </div>
                                     <input x-show="editing" x-cloak x-ref="description" type="text" name="description" form="{{ $incomeEditId }}" x-model="description" class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:border-[var(--accent)] focus:ring-[var(--accent)]" @keydown.enter.stop.prevent="$el.form.submit()">
+                                    @if ($income->recurringTemplate)
+                                        <div x-show="editing" x-cloak class="mt-1 text-[11px] text-gray-500">
+                                            Änderung gilt nur für diesen Monat. Willst du die Einnahme generell anpassen,
+                                            <a href="{{ route('recurring-templates.edit', $income->recurringTemplate) }}" class="font-semibold underline">klicke hier</a>.
+                                        </div>
+                                    @endif
                                     @if ($income->recurringTemplate && ($income->recurringTemplate->remaining_amount !== null || $income->recurringTemplate->ends_on))
                                         <div class="text-xs text-gray-500">
                                             @if ($income->recurringTemplate->remaining_amount !== null)
@@ -580,12 +985,12 @@
                                     <div class="{{ $actionStackClass }}">
                                         <div class="{{ $actionRowClass }}">
                                             <div x-show="!editing" class="flex items-center justify-end gap-2">
-                                                <form x-show="moveMode" x-cloak method="POST" action="{{ route('entries.move-prev-month', $income) }}">
+                                                <form x-show="moveMode" x-cloak method="POST" action="{{ route('entries.move-prev-month', $income) }}" onsubmit="return confirm('Eintrag in den Vormonat verschieben?');">
                                                     @csrf
                                                     @method('PATCH')
                                                     <button type="submit" class="text-xs text-[var(--accent)] underline" title="Vorheriger Monat">←</button>
                                                 </form>
-                                                <form x-show="moveMode" x-cloak method="POST" action="{{ route('entries.move-next-month', $income) }}">
+                                                <form x-show="moveMode" x-cloak method="POST" action="{{ route('entries.move-next-month', $income) }}" onsubmit="return confirm('Eintrag in den nächsten Monat verschieben?');">
                                                     @csrf
                                                     @method('PATCH')
                                                     <button type="submit" class="text-xs text-[var(--accent)] underline" title="Nächster Monat">→</button>
@@ -652,13 +1057,13 @@
                                 <tr x-data="{
                                     editing: false,
                                     payOpen: false,
-                                    description: @js($income->description),
-                                    amount: @js($incomeAmountInput),
-                                    amountDisplay: @js($incomeAmountDisplay),
-                                    originalDescription: @js($income->description),
-                                    originalAmount: @js($incomeAmountInput),
-                                    originalAmountDisplay: @js($incomeAmountDisplay),
-                                    paymentAmount: @js($income->open_amount),
+                                    description: {{ $json($income->description) }},
+                                    amount: {{ $json($incomeAmountInput) }},
+                                    amountDisplay: {{ $json($incomeAmountDisplay) }},
+                                    originalDescription: {{ $json($income->description) }},
+                                    originalAmount: {{ $json($incomeAmountInput) }},
+                                    originalAmountDisplay: {{ $json($incomeAmountDisplay) }},
+                                    paymentAmount: {{ $json($income->open_amount) }},
                                     syncAmount() {
                                         this.amount = (this.amountDisplay || '').toString().replace(/'/g, '').replace(',', '.');
                                     },
@@ -692,6 +1097,12 @@
                                             @include('months.partials.carryover-badge', ['entry' => $income])
                                         </div>
                                         <input x-show="editing" x-cloak x-ref="description" type="text" name="description" form="{{ $incomeEditId }}" x-model="description" class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:border-[var(--accent)] focus:ring-[var(--accent)]" @keydown.enter.stop.prevent="$el.form.submit()">
+                                        @if ($income->recurringTemplate)
+                                            <div x-show="editing" x-cloak class="mt-1 text-[11px] text-gray-500">
+                                                Änderung gilt nur für diesen Monat. Willst du die Einnahme generell anpassen,
+                                                <a href="{{ route('recurring-templates.edit', $income->recurringTemplate) }}" class="font-semibold underline">klicke hier</a>.
+                                            </div>
+                                        @endif
                                         @if ($income->recurringTemplate && ($income->recurringTemplate->remaining_amount !== null || $income->recurringTemplate->ends_on))
                                             <div class="text-xs text-gray-500">
                                                 @if ($income->recurringTemplate->remaining_amount !== null)
@@ -710,12 +1121,12 @@
                                         <div class="{{ $actionStackClass }}">
                                             <div class="{{ $actionRowClass }}">
                                                 <div x-show="!editing" class="flex items-center justify-end gap-2">
-                                                    <form x-show="moveMode" x-cloak method="POST" action="{{ route('entries.move-prev-month', $income) }}">
+                                                    <form x-show="moveMode" x-cloak method="POST" action="{{ route('entries.move-prev-month', $income) }}" onsubmit="return confirm('Eintrag in den Vormonat verschieben?');">
                                                         @csrf
                                                         @method('PATCH')
                                                         <button type="submit" class="text-xs text-[var(--accent)] underline" title="Vorheriger Monat">←</button>
                                                     </form>
-                                                    <form x-show="moveMode" x-cloak method="POST" action="{{ route('entries.move-next-month', $income) }}">
+                                                    <form x-show="moveMode" x-cloak method="POST" action="{{ route('entries.move-next-month', $income) }}" onsubmit="return confirm('Eintrag in den nächsten Monat verschieben?');">
                                                         @csrf
                                                         @method('PATCH')
                                                         <button type="submit" class="text-xs text-[var(--accent)] underline" title="Nächster Monat">→</button>
@@ -792,12 +1203,12 @@
                             highlight: false,
                             editing: false,
                             payOpen: false,
-                            description: @js($expense->description),
-                            amount: @js($expenseAmountInput),
-                            amountDisplay: @js($expenseAmountDisplay),
-                            originalDescription: @js($expense->description),
-                            originalAmount: @js($expenseAmountInput),
-                            originalAmountDisplay: @js($expenseAmountDisplay),
+                            description: {{ $json($expense->description) }},
+                            amount: {{ $json($expenseAmountInput) }},
+                            amountDisplay: {{ $json($expenseAmountDisplay) }},
+                            originalDescription: {{ $json($expense->description) }},
+                            originalAmount: {{ $json($expenseAmountInput) }},
+                            originalAmountDisplay: {{ $json($expenseAmountDisplay) }},
                             syncAmount() {
                                 this.amount = (this.amountDisplay || '').toString().replace(/'/g, '').replace(',', '.');
                             },
@@ -832,6 +1243,12 @@
                                     @include('months.partials.carryover-badge', ['entry' => $expense])
                                 </div>
                                 <input x-show="editing" x-cloak x-ref="description" type="text" name="description" form="{{ $expenseEditId }}" x-model="description" class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:border-[var(--accent)] focus:ring-[var(--accent)]" @keydown.enter.stop.prevent="$el.form.submit()">
+                                @if ($expense->recurringTemplate)
+                                    <div x-show="editing" x-cloak class="mt-1 text-[11px] text-gray-500">
+                                        Änderung gilt nur für diesen Monat. Willst du die Ausgabe generell anpassen,
+                                        <a href="{{ route('recurring-templates.edit', $expense->recurringTemplate) }}" class="font-semibold underline">klicke hier</a>.
+                                    </div>
+                                @endif
                                 @if ($expense->recurringTemplate && ($expense->recurringTemplate->remaining_amount !== null || $expense->recurringTemplate->ends_on))
                                     <div class="text-xs text-gray-500">
                                         @if ($expense->recurringTemplate->remaining_amount !== null)
@@ -850,12 +1267,12 @@
                                 <div class="{{ $actionStackClass }}">
                                     <div class="{{ $actionRowClass }}">
                                         <div x-show="!editing" class="flex items-center justify-end gap-2">
-                                            <form x-show="moveMode" x-cloak method="POST" action="{{ route('entries.move-prev-month', $expense) }}">
+                                            <form x-show="moveMode" x-cloak method="POST" action="{{ route('entries.move-prev-month', $expense) }}" onsubmit="return confirm('Eintrag in den Vormonat verschieben?');">
                                                 @csrf
                                                 @method('PATCH')
                                                 <button type="submit" class="text-xs text-[var(--accent)] underline" title="Vorheriger Monat">←</button>
                                             </form>
-                                            <form x-show="moveMode" x-cloak method="POST" action="{{ route('entries.move-next-month', $expense) }}">
+                                            <form x-show="moveMode" x-cloak method="POST" action="{{ route('entries.move-next-month', $expense) }}" onsubmit="return confirm('Eintrag in den nächsten Monat verschieben?');">
                                                 @csrf
                                                 @method('PATCH')
                                                 <button type="submit" class="text-xs text-[var(--accent)] underline" title="Nächster Monat">→</button>
@@ -1010,12 +1427,12 @@
                         <tr x-data="{
                             editing: false,
                             payOpen: false,
-                            description: @js($fixcost->description),
-                            amount: @js($fixcostAmountInput),
-                            amountDisplay: @js($fixcostAmountDisplay),
-                            originalDescription: @js($fixcost->description),
-                            originalAmount: @js($fixcostAmountInput),
-                            originalAmountDisplay: @js($fixcostAmountDisplay),
+                            description: {{ $json($fixcost->description) }},
+                            amount: {{ $json($fixcostAmountInput) }},
+                            amountDisplay: {{ $json($fixcostAmountDisplay) }},
+                            originalDescription: {{ $json($fixcost->description) }},
+                            originalAmount: {{ $json($fixcostAmountInput) }},
+                            originalAmountDisplay: {{ $json($fixcostAmountDisplay) }},
                             syncAmount() {
                                 this.amount = (this.amountDisplay || '').toString().replace(/'/g, '').replace(',', '.');
                             },
@@ -1049,6 +1466,12 @@
                                     @include('months.partials.carryover-badge', ['entry' => $fixcost])
                                 </div>
                                 <input x-show="editing" x-cloak x-ref="description" type="text" name="description" form="{{ $fixcostEditId }}" x-model="description" class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:border-[var(--accent)] focus:ring-[var(--accent)]" @keydown.enter.stop.prevent="$el.form.submit()">
+                                @if ($fixcost->recurringTemplate)
+                                    <div x-show="editing" x-cloak class="mt-1 text-[11px] text-gray-500">
+                                        Änderung gilt nur für diesen Monat. Willst du die Ausgabe generell anpassen,
+                                        <a href="{{ route('recurring-templates.edit', $fixcost->recurringTemplate) }}" class="font-semibold underline">klicke hier</a>.
+                                    </div>
+                                @endif
                                 @if ($fixcost->recurringTemplate && ($fixcost->recurringTemplate->remaining_amount !== null || $fixcost->recurringTemplate->ends_on))
                                     <div class="text-xs text-gray-500">
                                         @if ($fixcost->recurringTemplate->remaining_amount !== null)
@@ -1067,12 +1490,12 @@
                                 <div class="{{ $actionStackClass }}">
                                     <div class="{{ $actionRowClass }}">
                                         <div x-show="!editing" class="flex items-center justify-end gap-2">
-                                            <form x-show="moveMode" x-cloak method="POST" action="{{ route('entries.move-prev-month', $fixcost) }}">
+                                            <form x-show="moveMode" x-cloak method="POST" action="{{ route('entries.move-prev-month', $fixcost) }}" onsubmit="return confirm('Eintrag in den Vormonat verschieben?');">
                                                 @csrf
                                                 @method('PATCH')
                                                 <button type="submit" class="text-xs text-[var(--accent)] underline" title="Vorheriger Monat">←</button>
                                             </form>
-                                            <form x-show="moveMode" x-cloak method="POST" action="{{ route('entries.move-next-month', $fixcost) }}">
+                                            <form x-show="moveMode" x-cloak method="POST" action="{{ route('entries.move-next-month', $fixcost) }}" onsubmit="return confirm('Eintrag in den nächsten Monat verschieben?');">
                                                 @csrf
                                                 @method('PATCH')
                                                 <button type="submit" class="text-xs text-[var(--accent)] underline" title="Nächster Monat">→</button>
@@ -1131,6 +1554,203 @@
                 </tbody>
             </table>
         </x-section-table>
+    </div>
+
+    <x-bottom-sheet show="sheet === 'quick'" close="sheet = null" title="Neu erfassen">
+        <div class="grid grid-cols-1 gap-3">
+            <button type="button" class="touch-target w-full rounded-2xl bg-[var(--accent)] text-base font-semibold text-white" @click="sheet = 'expense'">Rechnung</button>
+            <button type="button" class="touch-target w-full rounded-2xl border border-[var(--border)] bg-white/80 text-base font-semibold text-gray-700 dark:text-slate-100" @click="sheet = 'payment-hub'">Zahlung</button>
+            <button type="button" class="touch-target w-full rounded-2xl border border-[var(--border)] bg-white/80 text-base font-semibold text-gray-700 dark:text-slate-100" @click="sheet = 'income'">Erwartete Einnahme</button>
+        </div>
+    </x-bottom-sheet>
+
+    <x-bottom-sheet show="sheet === 'payment-hub'" close="sheet = null" title="Zahlung">
+        <div class="grid grid-cols-1 gap-3">
+            <button type="button" class="touch-target w-full rounded-2xl bg-[var(--accent)] text-base font-semibold text-white" @click="sheet = 'payment'">Einnahme verbuchen</button>
+            <button type="button" class="touch-target w-full rounded-2xl border border-[var(--border)] bg-white/80 text-base font-semibold text-gray-700 dark:text-slate-100" @click="sheet = 'payment-out'">Rechnung bezahlt</button>
+        </div>
+    </x-bottom-sheet>
+
+    <x-bottom-sheet show="sheet === 'income'" close="sheet = null" title="Neue Einnahme">
+        @php
+            $incomeAccounts = $forecastAccounts->isNotEmpty() ? $forecastAccounts : $accounts;
+            $incomeSourceDefault = $forecastAccounts->isNotEmpty() ? 'expected' : 'manual';
+        @endphp
+        <form method="POST" action="{{ route('months.entries.store', $month) }}" class="space-y-4" x-data="{ source: '{{ $incomeSourceDefault }}' }">
+            @csrf
+            <input type="hidden" name="type" value="income">
+            <input type="hidden" name="direction" value="in">
+            <input type="hidden" name="status" value="open">
+            <div class="space-y-2">
+                <label class="text-[11px] uppercase tracking-[0.3em] text-gray-500">Art</label>
+                <select name="income_source" x-model="source" class="w-full rounded-xl border border-gray-300 bg-white/80 px-3 py-3 text-base focus:border-[var(--accent)] focus:ring-[var(--accent)]">
+                    <option value="expected">Erwartet (Forecast)</option>
+                    <option value="manual">Manuell</option>
+                </select>
+            </div>
+            <div class="space-y-2">
+                <label class="text-[11px] uppercase tracking-[0.3em] text-gray-500">Beschreibung</label>
+                <input data-autofocus type="text" name="description" class="w-full rounded-xl border border-gray-300 bg-white/80 px-3 py-3 text-base focus:border-[var(--accent)] focus:ring-[var(--accent)]" required>
+            </div>
+            <div class="space-y-2">
+                <label class="text-[11px] uppercase tracking-[0.3em] text-gray-500">Betrag</label>
+                <input type="number" step="0.01" inputmode="decimal" name="amount" class="w-full rounded-xl border border-gray-300 bg-white/80 px-3 py-3 text-base text-right tabular-nums focus:border-[var(--accent)] focus:ring-[var(--accent)]" placeholder="0.00" required>
+            </div>
+            <div class="space-y-2" x-show="source === 'expected'" x-cloak>
+                <label class="text-[11px] uppercase tracking-[0.3em] text-gray-500">Konto</label>
+                <select name="account_id" class="w-full rounded-xl border border-gray-300 bg-white/80 px-3 py-3 text-base focus:border-[var(--accent)] focus:ring-[var(--accent)]" required>
+                    @foreach ($incomeAccounts as $account)
+                        <option value="{{ $account->id }}">{{ $account->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            @if ($defaultForecastAccount)
+                <input type="hidden" name="account_id" value="{{ $defaultForecastAccount->id }}" x-bind:disabled="source === 'expected'">
+            @endif
+            <div class="sticky bottom-0 bg-[var(--surface)] pt-2">
+                <button type="submit" class="touch-target w-full rounded-2xl bg-[var(--accent)] text-base font-semibold text-white">Speichern</button>
+            </div>
+        </form>
+    </x-bottom-sheet>
+
+    <x-bottom-sheet show="sheet === 'expense'" close="sheet = null" title="Neue Rechnung">
+        <form method="POST" action="{{ route('months.entries.store', $month) }}" class="space-y-4">
+            @csrf
+            <input type="hidden" name="type" value="expense">
+            <input type="hidden" name="direction" value="out">
+            <input type="hidden" name="status" value="open">
+            <input type="hidden" name="entry_date" value="{{ now()->format('Y-m-d') }}">
+            <div class="space-y-2">
+                <label class="text-[11px] uppercase tracking-[0.3em] text-gray-500">Beschreibung</label>
+                <input data-autofocus type="text" name="description" class="w-full rounded-xl border border-gray-300 bg-white/80 px-3 py-3 text-base focus:border-[var(--accent)] focus:ring-[var(--accent)]" required>
+            </div>
+            <div class="space-y-2">
+                <label class="text-[11px] uppercase tracking-[0.3em] text-gray-500">Betrag</label>
+                <input type="number" step="0.01" inputmode="decimal" name="amount" class="w-full rounded-xl border border-gray-300 bg-white/80 px-3 py-3 text-base text-right tabular-nums focus:border-[var(--accent)] focus:ring-[var(--accent)]" placeholder="0.00" required>
+            </div>
+            <div class="space-y-2">
+                <label class="text-[11px] uppercase tracking-[0.3em] text-gray-500">Fällig</label>
+                <input type="date" name="due_date" value="{{ $month->date_to->format('Y-m-d') }}" class="w-full rounded-xl border border-gray-300 bg-white/80 px-3 py-3 text-base focus:border-[var(--accent)] focus:ring-[var(--accent)]" required>
+            </div>
+            <div class="space-y-2">
+                <label class="text-[11px] uppercase tracking-[0.3em] text-gray-500">Konto</label>
+                <select name="account_id" class="w-full rounded-xl border border-gray-300 bg-white/80 px-3 py-3 text-base focus:border-[var(--accent)] focus:ring-[var(--accent)]" required>
+                    @foreach ($payAccounts as $account)
+                        <option value="{{ $account->id }}">{{ $account->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="sticky bottom-0 bg-[var(--surface)] pt-2">
+                <button type="submit" class="touch-target w-full rounded-2xl bg-[var(--accent)] text-base font-semibold text-white">Speichern</button>
+            </div>
+        </form>
+    </x-bottom-sheet>
+
+    <x-bottom-sheet show="sheet === 'payment'" close="sheet = null" title="Zahlung eingegangen">
+        @if ($incomes->isEmpty())
+            <div class="rounded-2xl border border-dashed border-[var(--border)] bg-white/70 p-4 text-sm text-gray-500">Keine offenen Einnahmen vorhanden.</div>
+        @else
+            <form method="POST" action="{{ route('months.income-payments.store', $month) }}" class="space-y-4" x-init="if (!paymentEntryId) { paymentEntryId = {{ $firstIncomeId ?? 'null' }}; paymentAmount = paymentEntryId ? incomePaymentMap[paymentEntryId] : null; }">
+                @csrf
+                <div class="space-y-2">
+                    <label class="text-[11px] uppercase tracking-[0.3em] text-gray-500">Einnahme</label>
+                    <select name="entry_id" x-model="paymentEntryId" @change="paymentAmount = incomePaymentMap[paymentEntryId] ?? paymentAmount" class="w-full rounded-xl border border-gray-300 bg-white/80 px-3 py-3 text-base focus:border-[var(--accent)] focus:ring-[var(--accent)]" required>
+                        @foreach ($incomes as $income)
+                            <option value="{{ $income->id }}">{{ $income->description }} (CHF {{ $fmt($income->open_amount) }})</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[11px] uppercase tracking-[0.3em] text-gray-500">Betrag</label>
+                    <input type="number" step="0.01" inputmode="decimal" name="amount" x-model="paymentAmount" class="w-full rounded-xl border border-gray-300 bg-white/80 px-3 py-3 text-base text-right tabular-nums focus:border-[var(--accent)] focus:ring-[var(--accent)]" required>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[11px] uppercase tracking-[0.3em] text-gray-500">Zielkonto</label>
+                    <select name="target_account_id" class="w-full rounded-xl border border-gray-300 bg-white/80 px-3 py-3 text-base focus:border-[var(--accent)] focus:ring-[var(--accent)]" required>
+                        @foreach ($istAccounts as $account)
+                            <option value="{{ $account->id }}">{{ $account->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="sticky bottom-0 bg-[var(--surface)] pt-2">
+                    <button type="submit" class="touch-target w-full rounded-2xl bg-[var(--accent)] text-base font-semibold text-white">Speichern</button>
+                </div>
+            </form>
+        @endif
+    </x-bottom-sheet>
+
+    <x-bottom-sheet show="sheet === 'payment-out'" close="sheet = null" title="Rechnung bezahlt">
+        @if ($payableEntries->isEmpty())
+            <div class="rounded-2xl border border-dashed border-[var(--border)] bg-white/70 p-4 text-sm text-gray-500">Keine offenen Rechnungen oder Fixkosten.</div>
+        @else
+            <form method="POST" x-bind:action="payableActionMap[payableEntryId] || '#'" class="space-y-4" x-init="if (!payableEntryId) { payableEntryId = {{ $json($firstPayableId) }}; }">
+                @csrf
+                <div class="space-y-2">
+                    <label class="text-[11px] uppercase tracking-[0.3em] text-gray-500">Posten</label>
+                    <select x-model="payableEntryId" class="w-full rounded-xl border border-gray-300 bg-white/80 px-3 py-3 text-base focus:border-[var(--accent)] focus:ring-[var(--accent)]" required>
+                        @foreach ($payableEntries as $entry)
+                            @php
+                                $typeLabel = $entry->type === 'expense' ? 'Rechnung' : 'Fixkosten';
+                            @endphp
+                            <option value="{{ $entry->id }}">{{ $typeLabel }}: {{ $entry->description }} (CHF {{ $fmt($entry->amount) }})</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[11px] uppercase tracking-[0.3em] text-gray-500">Konto</label>
+                    <select name="account_id" class="w-full rounded-xl border border-gray-300 bg-white/80 px-3 py-3 text-base focus:border-[var(--accent)] focus:ring-[var(--accent)]" required>
+                        @foreach ($payAccounts as $account)
+                            <option value="{{ $account->id }}">{{ $account->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="sticky bottom-0 bg-[var(--surface)] pt-2">
+                    <button type="submit" class="touch-target w-full rounded-2xl bg-[var(--accent)] text-base font-semibold text-white" x-bind:disabled="!payableEntryId">Speichern</button>
+                </div>
+            </form>
+        @endif
+    </x-bottom-sheet>
+
+    <x-bottom-sheet show="sheet === 'mark-paid'" close="sheet = null; payAction = null; payLabel = ''" title="Bezahlt markieren">
+        <form method="POST" x-bind:action="payAction || '#'" class="space-y-4">
+            @csrf
+            <div class="rounded-2xl border border-[var(--border)] bg-white/70 p-3 text-sm text-gray-600">
+                Zahlung für <span class="font-semibold text-gray-900" x-text="payLabel"></span>
+            </div>
+            <div class="space-y-2">
+                <label class="text-[11px] uppercase tracking-[0.3em] text-gray-500">Konto</label>
+                <select name="account_id" class="w-full rounded-xl border border-gray-300 bg-white/80 px-3 py-3 text-base focus:border-[var(--accent)] focus:ring-[var(--accent)]" required>
+                    @foreach ($payAccounts as $account)
+                        <option value="{{ $account->id }}">{{ $account->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="sticky bottom-0 bg-[var(--surface)] pt-2">
+                <button type="submit" class="touch-target w-full rounded-2xl bg-[var(--accent)] text-base font-semibold text-white" x-bind:disabled="!payAction">Speichern</button>
+            </div>
+        </form>
+    </x-bottom-sheet>
+
+    <div class="sm:hidden h-28"></div>
+
+    <div class="mt-6">
+        <button type="button" class="touch-target w-full rounded-2xl border border-[var(--border)] bg-white/80 text-sm font-semibold text-gray-700 dark:text-slate-100 flex items-center justify-between px-4 py-3" @click="entriesOpen = !entriesOpen; if (entriesOpen) { $nextTick(() => $refs.entriesSection?.scrollIntoView({ behavior: 'smooth', block: 'start' })) }">
+            <span class="flex items-center gap-2">
+                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M8 6h13" />
+                    <path d="M8 12h13" />
+                    <path d="M8 18h13" />
+                    <circle cx="4" cy="6" r="1" />
+                    <circle cx="4" cy="12" r="1" />
+                    <circle cx="4" cy="18" r="1" />
+                </svg>
+                Einträge (Log)
+            </span>
+            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path x-show="!entriesOpen" x-cloak d="M6 9l6 6 6-6" />
+                <path x-show="entriesOpen" x-cloak d="M6 15l6-6 6 6" />
+            </svg>
+        </button>
     </div>
 
     <div x-show="entriesOpen" x-cloak x-ref="entriesSection" id="entries-{{ $month->id }}" class="space-y-4">

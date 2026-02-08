@@ -135,7 +135,9 @@
                         <td class="text-right">
                             <div class="flex items-center justify-end gap-3">
                                 @if ($entry->type !== 'transfer')
-                                    <a href="{{ route('entries.edit', $entry) }}" class="text-sm text-gray-700 underline">Bearbeiten</a>
+                                    <a href="{{ route('entries.edit', $entry) }}" class="inline-flex items-center accent-icon hover:opacity-80" aria-label="Bearbeiten">
+                                        <x-icon-edit class="h-4 w-4" />
+                                    </a>
                                 @endif
                                 @if ($entry->type !== 'transfer')
                                     <form method="POST" action="{{ route('entries.move-prev-month', $entry) }}">
@@ -152,7 +154,9 @@
                                 <form method="POST" action="{{ route('entries.destroy', $entry) }}" onsubmit="return confirm('Eintrag wirklich löschen?');">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="text-sm text-red-700 underline">Löschen</button>
+                                    <button type="submit" class="inline-flex items-center text-red-700 hover:opacity-80" aria-label="Löschen">
+                                        <x-icon-trash class="h-4 w-4" />
+                                    </button>
                                 </form>
                         </div>
                     </td>

@@ -1,17 +1,11 @@
-<x-app-layout>
+<x-app-layout :mobile-title="'Monatsübersicht'">
     <x-slot name="header">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">Monatsübersicht</h2>
-            <div class="flex flex-wrap items-center gap-2">
-                <a href="{{ route('months.create') }}" class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md text-sm">Monat erstellen</a>
-                <a href="{{ route('months.index', $showArchived ? [] : ['show_archived' => 1]) }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-md text-sm">
-                    {{ $showArchived ? 'Archivierte ausblenden' : 'Archivierte anzeigen' }}
-                </a>
-            </div>
         </div>
     </x-slot>
 
-    <div class="py-12">
+    <div class="py-10">
         <div class="w-full px-4 sm:px-6 lg:px-10">
             @php
                 $fmt = fn ($value) => new \Illuminate\Support\HtmlString(
@@ -19,7 +13,7 @@
                 );
             @endphp
             @if ($months->isEmpty())
-                <div class="bg-white dark:bg-slate-900/80 shadow sm:rounded-lg p-6 accent-box border">
+                <div class="bg-white dark:bg-slate-900/80 shadow sm:rounded-lg p-6 accent-box border rounded-2xl">
                     <p class="text-gray-600">Noch keine Monate vorhanden.</p>
                 </div>
             @else
@@ -46,11 +40,11 @@
                             $cumulativeResult = $cumulative['result_sum'] ?? 0;
                             $cumulativeClass = $cumulativeResult < 0 ? 'text-red-700 dark:text-red-200' : 'text-emerald-800 dark:text-emerald-200';
                         @endphp
-                        <a href="{{ route('months.show', $month) }}" class="group block rounded-xl border accent-box bg-white/85 dark:bg-slate-900/85 p-4 shadow-sm transition hover:shadow-md hover:-translate-y-0.5">
+                        <a href="{{ route('months.show', $month) }}" class="group block rounded-2xl border accent-box bg-white/85 dark:bg-slate-900/85 p-5 shadow-sm transition hover:shadow-md hover:-translate-y-0.5">
                             <div class="flex items-start justify-between gap-3">
                                 <div>
                                     <div class="text-[10px] uppercase tracking-[0.25em] text-gray-500 dark:text-slate-400">Monat</div>
-                                    <div class="text-lg font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-2">
+                                    <div class="text-xl font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-2">
                                         <span>{{ $month->name }}</span>
                                         @if ($month->is_current)
                                             <span class="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800 dark:border-emerald-700/60 dark:bg-emerald-900/30 dark:text-emerald-200">Aktuell</span>
@@ -76,7 +70,7 @@
                                 <div class="text-xs text-gray-400 dark:text-slate-500">→</div>
                             </div>
 
-                            <div class="mt-4 rounded-lg px-3 py-2 text-center text-2xl font-semibold tabular-nums {{ $resultBoxClass }} {{ $resultClass }}">
+                            <div class="mt-4 rounded-2xl px-3 py-3 text-center text-2xl font-semibold tabular-nums {{ $resultBoxClass }} {{ $resultClass }}">
                                 CHF {{ $fmt($result) }}
                             </div>
 
@@ -124,6 +118,13 @@
                     @endforeach
                 </div>
             @endif
+
+            <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2 sm:max-w-xl">
+                <a href="{{ route('months.create') }}" class="touch-target inline-flex items-center justify-center rounded-2xl bg-[var(--accent)] text-white text-base font-semibold">Monat erstellen</a>
+                <a href="{{ route('months.index', $showArchived ? [] : ['show_archived' => 1]) }}" class="touch-target inline-flex items-center justify-center rounded-2xl border border-[var(--border)] bg-white/80 text-base font-semibold text-gray-700 dark:text-slate-100">
+                    {{ $showArchived ? 'Archivierte ausblenden' : 'Archivierte anzeigen' }}
+                </a>
+            </div>
         </div>
     </div>
 </x-app-layout>

@@ -7,6 +7,12 @@
         <div class="w-full px-4 sm:px-6 lg:px-10 space-y-4">
             <div class="bg-white dark:bg-slate-900/80 shadow sm:rounded-lg border accent-box">
                 <div class="p-6">
+                    @if ($entry->recurringTemplate)
+                        <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2 text-xs text-amber-900">
+                            Änderung gilt nur für diesen Monat. Willst du die {{ $entry->type === 'income' ? 'Einnahme' : 'Ausgabe' }} generell anpassen,
+                            <a href="{{ route('recurring-templates.edit', $entry->recurringTemplate) }}" class="font-semibold underline">klicke hier</a>.
+                        </div>
+                    @endif
                     <form method="POST" action="{{ route('entries.update', $entry) }}" class="space-y-4">
                         @csrf
                         @method('PUT')

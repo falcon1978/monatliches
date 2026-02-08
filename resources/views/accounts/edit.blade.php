@@ -27,7 +27,7 @@
                             <x-input-label for="type" value="Typ" />
                             <select id="type" name="type" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-[var(--accent)] focus:ring-[var(--accent)]" required>
                                 <option value="ist" @selected(old('type', $account->type) === 'ist')>Ist (Bank/Bar)</option>
-                                <option value="forecast" @selected(old('type', $account->type) === 'forecast')>Forecast (Offen)</option>
+                                <option value="forecast" @selected(old('type', $account->type) === 'forecast')>Erwartet (Offen)</option>
                                 @if (old('type', $account->type) === 'clearing')
                                     <option value="clearing" selected>Verrechnung</option>
                                 @endif

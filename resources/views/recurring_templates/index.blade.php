@@ -1,4 +1,4 @@
-<x-app-layout>
+<x-app-layout :mobile-title="'Wiederkehrende Posten'">
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">Wiederkehrende Posten</h2>
@@ -67,52 +67,42 @@
                 </div>
             @else
                 <div class="space-y-6">
-                    <div class="bg-white dark:bg-slate-900/80 shadow sm:rounded-lg p-6 border accent-box">
-                        <h3 class="text-lg font-semibold text-gray-800 dark:text-slate-100">Monatliche Totale</h3>
-                        <div class="overflow-x-auto mt-4">
-                            <table class="min-w-full text-sm">
-                                <thead>
-                                    <tr class="text-left text-gray-500">
-                                        <th class="py-2">Monat</th>
-                                        <th class="text-right">Einnahmen</th>
-                                        <th class="text-right">Ausgaben</th>
-                                        <th class="text-right">Resultat</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y">
-                                    @foreach ($monthTotals as $month => $values)
-                                        @php
-                                            $income = round($values['income'], 2);
-                                            $expense = round($values['expense'], 2);
-                                            $result = round($income - $expense, 2);
-                                        @endphp
-                                        <tr>
-                                            <td class="py-2">{{ $monthNames[$month] ?? $month }}</td>
-                                        <td class="text-right tabular-nums font-semibold">CHF {{ $fmt($income) }}</td>
-                                        <td class="text-right tabular-nums font-semibold">CHF {{ $fmt($expense) }}</td>
-                                        <td class="text-right tabular-nums font-semibold">CHF {{ $fmt($result) }}</td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                                <tfoot class="border-t">
-                                    <tr class="font-semibold">
-                                        <td class="py-2">Gesamt</td>
-                                        <td class="text-right tabular-nums font-semibold">CHF {{ $fmt($overallIncome) }}</td>
-                                        <td class="text-right tabular-nums font-semibold">CHF {{ $fmt($overallExpense) }}</td>
-                                        <td class="text-right tabular-nums font-semibold">CHF {{ $fmt($overallResult) }}</td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                    </div>
-
                     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                    <div class="bg-white dark:bg-slate-900/80 shadow sm:rounded-lg p-6 border accent-box" x-data="{ query: '' }">
-                        <div class="flex flex-wrap items-center justify-between gap-3">
-                            <h3 class="text-lg font-semibold text-gray-800 dark:text-slate-100">Einnahmen</h3>
-                            <input type="text" x-model="query" class="border-gray-300 rounded-md shadow-sm text-sm" placeholder="Suchen...">
+                    <div class="space-y-3" x-data="{ query: '' }">
+                        <div class="sticky top-[var(--mobile-header-offset)] z-[850] bg-[var(--surface-2)] px-4 -mx-4 py-2 border-b border-[var(--border)] sm:static sm:bg-transparent sm:px-0 sm:mx-0 sm:py-0 sm:border-0">
+                            <div class="flex flex-wrap items-center justify-between gap-3">
+                                <h3 class="text-lg font-semibold text-gray-800 dark:text-slate-100">Wiederkehrende Einnahmen</h3>
+                                <input type="text" x-model="query" class="w-full sm:w-auto border-gray-300 rounded-md shadow-sm px-3 py-2 text-base" placeholder="Suchen...">
+                            </div>
                         </div>
-                        <div class="overflow-x-auto mt-4">
+                        <div class="sm:hidden mt-4 space-y-3">
+                            @forelse ($incomeTemplates as $template)
+                                @php
+                                    $months = $resolveMonths($template);
+                                    $monthsLabel = count($months) === 12
+                                        ? 'Monatlich'
+                                        : collect($months)->map(fn ($month) => $monthNames[$month] ?? $month)->implode(', ');
+                                    $searchValue = strtolower($template->name);
+                                @endphp
+                                <div class="rounded-2xl border border-[var(--border)] bg-green-50/70 dark:bg-emerald-950/30 shadow-sm p-2.5" data-search="{{ $searchValue }}" x-show="!query || $el.dataset.search.includes(query.toLowerCase())">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <div class="min-w-0 flex items-center gap-2">
+                                            <a href="{{ route('recurring-templates.edit', $template) }}" class="touch-target inline-flex items-center justify-center rounded-full text-gray-400 hover:text-gray-700" aria-label="Bearbeiten">
+                                                <x-icon-edit class="h-4 w-4" />
+                                            </a>
+                                            <div class="min-w-0">
+                                                <div class="text-sm font-semibold text-gray-900 dark:text-slate-100 truncate">{{ $template->name }}</div>
+                                                <div class="mt-1 text-[10px] text-gray-500">{{ $monthsLabel ?: '–' }}</div>
+                                            </div>
+                                        </div>
+                                        <div class="text-sm font-semibold tabular-nums text-gray-900 dark:text-slate-100 shrink-0">CHF {{ $fmt($template->amount) }}</div>
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="rounded-2xl border border-dashed border-[var(--border)] bg-white/70 p-4 text-sm text-gray-500">Keine wiederkehrenden Einnahmen vorhanden.</div>
+                            @endforelse
+                        </div>
+                        <div class="hidden sm:block overflow-x-auto mt-4">
                             <table class="min-w-full text-sm" data-sort-table>
                                 <thead>
                                     <tr class="text-left text-gray-500">
@@ -163,12 +153,49 @@
                         </div>
                     </div>
 
-                    <div class="bg-white dark:bg-slate-900/80 shadow sm:rounded-lg p-6 border accent-box" x-data="{ query: '' }">
-                        <div class="flex flex-wrap items-center justify-between gap-3">
-                            <h3 class="text-lg font-semibold text-gray-800 dark:text-slate-100">Ausgaben</h3>
-                            <input type="text" x-model="query" class="border-gray-300 rounded-md shadow-sm text-sm" placeholder="Suchen...">
+                    <div class="space-y-3" x-data="{ query: '' }">
+                        <div class="sticky top-[var(--mobile-header-offset)] z-[850] bg-[var(--surface-2)] px-4 -mx-4 py-2 border-b border-[var(--border)] sm:static sm:bg-transparent sm:px-0 sm:mx-0 sm:py-0 sm:border-0">
+                            <div class="flex flex-wrap items-center justify-between gap-3">
+                                <h3 class="text-lg font-semibold text-gray-800 dark:text-slate-100">Ausgaben/Fixkosten</h3>
+                                <input type="text" x-model="query" class="w-full sm:w-auto border-gray-300 rounded-md shadow-sm px-3 py-2 text-base" placeholder="Suchen...">
+                            </div>
                         </div>
-                        <div class="overflow-x-auto mt-4">
+                        <div class="sm:hidden mt-4 space-y-3">
+                            @forelse ($expenseTemplates as $template)
+                                @php
+                                    $months = $resolveMonths($template);
+                                    $monthsLabel = count($months) === 12
+                                        ? 'Monatlich'
+                                        : collect($months)->map(fn ($month) => $monthNames[$month] ?? $month)->implode(', ');
+                                    $searchValue = strtolower($template->name);
+                                @endphp
+                                <div class="rounded-2xl border border-[var(--border)] bg-amber-50/70 dark:bg-amber-950/30 shadow-sm p-2.5" data-search="{{ $searchValue }}" x-show="!query || $el.dataset.search.includes(query.toLowerCase())">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <div class="min-w-0 flex items-center gap-2">
+                                            <a href="{{ route('recurring-templates.edit', $template) }}" class="touch-target inline-flex items-center justify-center rounded-full text-gray-400 hover:text-gray-700" aria-label="Bearbeiten">
+                                                <x-icon-edit class="h-4 w-4" />
+                                            </a>
+                                            <div class="min-w-0">
+                                                <div class="text-sm font-semibold text-gray-900 dark:text-slate-100 truncate">{{ $template->name }}</div>
+                                                <div class="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-gray-500">
+                                                    <span>{{ $monthsLabel ?: '–' }}</span>
+                                                    @if ($template->ends_on)
+                                                        <span>Ende {{ $template->ends_on->format('d.m.Y') }}</span>
+                                                    @endif
+                                                    @if ($template->remaining_amount !== null)
+                                                        <span>Rest CHF {{ $fmt($template->remaining_amount) }}</span>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="text-sm font-semibold tabular-nums text-gray-900 dark:text-slate-100 shrink-0">CHF {{ $fmt($template->amount) }}</div>
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="rounded-2xl border border-dashed border-[var(--border)] bg-white/70 p-4 text-sm text-gray-500">Keine wiederkehrenden Fixkosten vorhanden.</div>
+                            @endforelse
+                        </div>
+                        <div class="hidden sm:block overflow-x-auto mt-4">
                             <table class="min-w-full text-sm" data-sort-table>
                                 <thead>
                                     <tr class="text-left text-gray-500">
@@ -244,6 +271,87 @@
                             </table>
                         </div>
                     </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-slate-900/80 shadow sm:rounded-lg p-6 border accent-box">
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-slate-100">Monatliche Totale</h3>
+                        <div class="sm:hidden mt-4 space-y-3">
+                            @foreach ($monthTotals as $month => $values)
+                                @php
+                                    $income = round($values['income'], 2);
+                                    $expense = round($values['expense'], 2);
+                                    $result = round($income - $expense, 2);
+                                @endphp
+                                <div class="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+                                    <div class="flex items-center justify-between gap-3">
+                                        <div class="text-base font-semibold text-gray-900 dark:text-slate-100">{{ $monthNames[$month] ?? $month }}</div>
+                                        <div class="text-base font-semibold text-gray-900 dark:text-slate-100">CHF {{ $fmt($result) }}</div>
+                                    </div>
+                                    <div class="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-600">
+                                        <div class="flex items-center justify-between rounded-xl bg-white/70 px-2 py-1">
+                                            <span>Einnahmen</span>
+                                            <span class="font-semibold tabular-nums text-gray-900">CHF {{ $fmt($income) }}</span>
+                                        </div>
+                                        <div class="flex items-center justify-between rounded-xl bg-white/70 px-2 py-1">
+                                            <span>Ausgaben</span>
+                                            <span class="font-semibold tabular-nums text-gray-900">CHF {{ $fmt($expense) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                            <div class="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+                                <div class="text-[11px] uppercase tracking-[0.3em] text-gray-500">Gesamt</div>
+                                <div class="mt-2 grid grid-cols-2 gap-2 text-xs text-gray-600">
+                                    <div class="flex items-center justify-between rounded-xl bg-white/70 px-2 py-1">
+                                        <span>Einnahmen</span>
+                                        <span class="font-semibold tabular-nums text-gray-900">CHF {{ $fmt($overallIncome) }}</span>
+                                    </div>
+                                    <div class="flex items-center justify-between rounded-xl bg-white/70 px-2 py-1">
+                                        <span>Ausgaben</span>
+                                        <span class="font-semibold tabular-nums text-gray-900">CHF {{ $fmt($overallExpense) }}</span>
+                                    </div>
+                                    <div class="flex items-center justify-between rounded-xl bg-white/70 px-2 py-1 col-span-2">
+                                        <span>Resultat</span>
+                                        <span class="font-semibold tabular-nums text-gray-900">CHF {{ $fmt($overallResult) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hidden sm:block overflow-x-auto mt-4">
+                            <table class="min-w-full text-sm">
+                                <thead>
+                                    <tr class="text-left text-gray-500">
+                                        <th class="py-2">Monat</th>
+                                        <th class="text-right">Einnahmen</th>
+                                        <th class="text-right">Ausgaben</th>
+                                        <th class="text-right">Resultat</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y">
+                                    @foreach ($monthTotals as $month => $values)
+                                        @php
+                                            $income = round($values['income'], 2);
+                                            $expense = round($values['expense'], 2);
+                                            $result = round($income - $expense, 2);
+                                        @endphp
+                                        <tr>
+                                            <td class="py-2">{{ $monthNames[$month] ?? $month }}</td>
+                                        <td class="text-right tabular-nums font-semibold">CHF {{ $fmt($income) }}</td>
+                                        <td class="text-right tabular-nums font-semibold">CHF {{ $fmt($expense) }}</td>
+                                        <td class="text-right tabular-nums font-semibold">CHF {{ $fmt($result) }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                                <tfoot class="border-t">
+                                    <tr class="font-semibold">
+                                        <td class="py-2">Gesamt</td>
+                                        <td class="text-right tabular-nums font-semibold">CHF {{ $fmt($overallIncome) }}</td>
+                                        <td class="text-right tabular-nums font-semibold">CHF {{ $fmt($overallExpense) }}</td>
+                                        <td class="text-right tabular-nums font-semibold">CHF {{ $fmt($overallResult) }}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
                     </div>
                 </div>
             @endif

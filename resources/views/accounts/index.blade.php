@@ -12,13 +12,9 @@
     </x-slot>
 
     @php
-        $fmt = fn ($value) => new \Illuminate\Support\HtmlString(
-            number_format((float) $value, 2, '.', "'")
-        );
-        $hasClearing = $accounts->contains(fn ($account) => $account->type === 'clearing');
         $typeLabels = [
             'ist' => 'Ist',
-            'forecast' => 'Forecast',
+            'forecast' => 'Erwartet',
             'clearing' => 'Verrechnung',
         ];
     @endphp
@@ -35,53 +31,51 @@
                     {{ $errors->first('balance') }}
                 </div>
             @endif
-            @if (! $currentMonth)
-                <div class="border border-amber-200 bg-amber-50 text-amber-800 p-3 text-sm accent-box">
-                    Kein aktueller Monat vorhanden. Kontostände können erst gesetzt werden, wenn ein Monat existiert.
-                </div>
-            @endif
+            <div class="sm:hidden space-y-3">
+                @forelse ($accounts as $account)
+                    @php
+                        $accountBg = match ($account->type) {
+                            'forecast' => 'bg-green-50/70 dark:bg-emerald-950/30',
+                            'clearing' => 'bg-amber-50/70 dark:bg-amber-950/30',
+                            default => 'bg-blue-50/70 dark:bg-blue-950/30',
+                        };
+                    @endphp
+                    <div class="rounded-2xl border border-[var(--border)] {{ $accountBg }} shadow-sm p-2.5">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="min-w-0 flex items-center gap-2">
+                                <a href="{{ route('accounts.edit', $account) }}" class="touch-target inline-flex items-center justify-center rounded-full text-gray-400 hover:text-gray-700" aria-label="Bearbeiten">
+                                    <x-icon-edit class="h-4 w-4" />
+                                </a>
+                                <div class="min-w-0">
+                                    <div class="text-sm font-semibold text-gray-900 dark:text-slate-100 truncate">{{ $account->name }}</div>
+                                    <div class="mt-1 text-[10px] uppercase tracking-[0.2em] text-gray-500">{{ $typeLabels[$account->type] ?? $account->type }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    <div class="rounded-2xl border border-dashed border-[var(--border)] bg-white/70 dark:bg-slate-900/60 p-4 text-sm text-gray-500">
+                        Noch keine Konten vorhanden.
+                    </div>
+                @endforelse
+            </div>
 
-            <div class="bg-white dark:bg-slate-900/80 shadow sm:rounded-lg overflow-hidden border accent-box">
+            <div class="hidden sm:block bg-white dark:bg-slate-900/80 shadow sm:rounded-lg overflow-hidden border accent-box">
                 <table class="min-w-full text-sm">
                     <thead class="bg-gray-50 text-left text-gray-600">
                         <tr>
                             <th class="px-4 py-2">Name</th>
                             <th class="px-4 py-2">Typ</th>
-                            <th class="px-4 py-2 text-right">Kontostand</th>
-                            <th class="px-4 py-2 text-right">Saldo setzen</th>
+                            <th class="px-4 py-2 text-right">Aktion</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200">
                         @forelse ($accounts as $account)
-                            @php
-                                $forecastOpen = (float) ($forecastBalances[$account->id] ?? 0);
-                                $balance = $account->type === 'forecast'
-                                    ? $forecastOpen
-                                    : (float) ($accountBalances[$account->id] ?? 0);
-                                $balanceClass = $balance < 0 ? 'text-red-700' : 'text-gray-900';
-                                $balanceInput = number_format($balance, 2, '.', '');
-                                $canEditBalance = $currentMonth && in_array($account->type, ['ist', 'clearing'], true);
-                            @endphp
                             <tr>
                                 <td class="px-4 py-2 font-medium text-gray-900">{{ $account->name }}</td>
                                 <td class="px-4 py-2 text-gray-600">{{ $typeLabels[$account->type] ?? $account->type }}</td>
-                                <td class="px-4 py-2 text-right tabular-nums font-semibold {{ $balanceClass }}">
-                                    CHF {{ $fmt($balance) }}
-                                </td>
                                 <td class="px-4 py-2 text-right">
-                                    <div class="flex flex-col items-end gap-2">
-                                        @if ($canEditBalance)
-                                            <form method="POST" action="{{ route('months.balances.update', [$currentMonth, $account]) }}" class="flex items-center gap-2">
-                                                @csrf
-                                                @method('PATCH')
-                                                <input type="number" step="0.01" name="amount" value="{{ $balanceInput }}" class="w-28 border border-gray-300 rounded px-2 py-1 text-sm text-right tabular-nums focus:border-[var(--accent)] focus:ring-[var(--accent)]" required>
-                                                <button type="submit" class="px-2 py-1 bg-[var(--accent)] text-white rounded text-xs">Setzen</button>
-                                            </form>
-                                        @else
-                                            <div class="text-xs text-gray-500">–</div>
-                                        @endif
-                                        <a href="{{ route('accounts.edit', $account) }}" class="text-sm text-[var(--accent)] underline">Bearbeiten</a>
-                                    </div>
+                                    <a href="{{ route('accounts.edit', $account) }}" class="text-sm text-[var(--accent)] underline">Bearbeiten</a>
                                 </td>
                             </tr>
                         @empty
@@ -93,13 +87,6 @@
                 </table>
             </div>
 
-            <div class="text-xs text-gray-500">
-                @if ($hasClearing)
-                    Forecast-Konten zeigen offene Einnahmen; Ist-/Verrechnungs-Konten zeigen den aktuellen Kontostand.
-                @else
-                    Forecast-Konten zeigen offene Einnahmen; Ist-Konten zeigen den aktuellen Kontostand.
-                @endif
-            </div>
         </div>
     </div>
 </x-app-layout>

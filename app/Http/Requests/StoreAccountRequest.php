@@ -18,6 +18,7 @@ class StoreAccountRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'type' => ['required', Rule::in(['ist', 'forecast', 'clearing'])],
+            'initial_balance' => ['nullable', 'numeric'],
         ];
     }
 }

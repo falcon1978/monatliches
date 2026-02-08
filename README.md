@@ -14,6 +14,19 @@ Monatliches ist ein schlankes Budget- und Monatsplanungs-Tool auf Laravel-Basis.
 - Nutzerprofil inkl. Akzentfarbe und Profilbild.
 - Adminbereich für User‑Management und In‑App‑Updates.
 
+## Mobile‑First UI (App‑like)
+
+- **Bottom‑Navigation** (Profil, Monatsübersicht/Kalender, Wiederkehrende, Konten, Ferien, + Neu).
+- **Bottom‑Sheets** für Aktionen/Navigation; öffnen **oberhalb** der Navi (Navi bleibt sichtbar).
+- **Monatsauswahl** über Kalender‑Icon als kompaktes Sheet (Übersicht + Monate, keine Archive).
+- **Monatsansicht** auf Mobile als Card‑Listen statt Tabellen, kompakte Einträge.
+- **Sticky Abschnittstitel** und **Sticky Untertitel** (zeigen immer den aktuellen Bereich).
+- **Swipe** zwischen Monaten (vor/zurück, nur nicht‑archivierte).
+- **Kontostände** werden in der Monatsansicht als editierbare Boxen gezeigt (nicht in der Kontenübersicht).
+- **Wiederkehrende**: mobile Übersicht im Karten‑Stil, keine umgebende Box, sticky Titel.
+- **Labels**: „Forecast“ heißt jetzt **„Erwartet“** (z. B. Konten‑Typ, Abschnittstitel).
+- **+ Neu** ist kontextsensitiv (z. B. Monat: Rechnung/Zahlung/Erwartete Einnahme; Ferien/Konten/Wiederkehrende: direkt erfassen).
+
 ## Wichtige Konzepte
 
 - Es gibt genau einen **aktuellen Monat**. Nur dieser Monat rechnet den Kontostand ins Monatsergebnis ein.
@@ -22,6 +35,7 @@ Monatliches ist ein schlankes Budget- und Monatsplanungs-Tool auf Laravel-Basis.
 - **Übertragen** verschiebt offene Posten in den nächsten Monat, inklusive Badge „Aus <Monat>“.
 - Übertragen ist gesperrt, solange im Vormonat noch offene Posten existieren.
 - Ein Übertrag kann wieder **rückgängig** gemacht werden.
+ - Wiederkehrende Posten können bei Erstellung/Bearbeitung automatisch in **aktuelle und zukünftige** Monate übernommen werden.
 
 ## Demo
 

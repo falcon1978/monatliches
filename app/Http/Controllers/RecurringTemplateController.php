@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreRecurringTemplateRequest;
 use App\Http\Requests\UpdateRecurringTemplateRequest;
+use App\Models\Entry;
+use App\Models\Month;
 use App\Models\RecurringTemplate;
 use Illuminate\Http\Request;
 
@@ -56,7 +58,7 @@ class RecurringTemplateController extends Controller
             $endsOn = null;
         }
 
-        RecurringTemplate::create([
+        $template = RecurringTemplate::create([
             'user_id' => $request->user()->id,
             'kind' => $data['kind'],
             'name' => $data['name'],
@@ -70,6 +72,8 @@ class RecurringTemplateController extends Controller
             'is_active' => true,
             'sort_order' => is_null($sortOrder) ? 1 : $sortOrder + 1,
         ]);
+
+        $this->importTemplateIntoFutureMonths($template);
 
         return redirect()
             ->route('recurring-templates.index')
@@ -119,6 +123,8 @@ class RecurringTemplateController extends Controller
             'is_active' => true,
         ]);
 
+        $this->importTemplateIntoFutureMonths($recurringTemplate);
+
         return redirect()
             ->route('recurring-templates.index')
             ->with('status', 'Wiederkehrender Posten aktualisiert.');
@@ -167,5 +173,93 @@ class RecurringTemplateController extends Controller
         }
 
         return response()->json(['status' => 'ok']);
+    }
+
+    private function importTemplateIntoFutureMonths(RecurringTemplate $template): int
+    {
+        $user = $template->user;
+        $today = now()->startOfDay();
+        $months = Month::forUser($user)
+            ->visible()
+            ->whereDate('date_to', '>=', $today->toDateString())
+            ->orderBy('date_from')
+            ->get();
+
+        if ($months->isEmpty()) {
+            return 0;
+        }
+
+        if ($template->remaining_amount !== null && (float) $template->remaining_amount <= 0) {
+            return 0;
+        }
+
+        $accounts = $user->accounts()->get()->groupBy('type');
+        $created = 0;
+
+        foreach ($months as $month) {
+            if (! $template->appliesToMonth($month)) {
+                continue;
+            }
+
+            $exists = Entry::query()
+                ->where('month_id', $month->id)
+                ->where(function ($query) use ($template) {
+                    $query->where('recurring_template_id', $template->id)
+                        ->orWhere(function ($query) use ($template) {
+                            $query->where('type', $template->kind)
+                                ->where('description', $template->name)
+                                ->where('amount', $template->amount);
+                        });
+                })
+                ->exists();
+
+            if ($exists) {
+                continue;
+            }
+
+            $accountType = $template->kind === 'income' ? 'forecast' : 'ist';
+            $account = $template->defaultAccount;
+            if ($template->kind === 'income' && $account && $account->type !== 'forecast') {
+                $account = null;
+            }
+            $account = $account
+                ?? $accounts->get($accountType)?->first()
+                ?? $user->accounts()->first();
+
+            if (! $account) {
+                continue;
+            }
+
+            $amount = (float) $template->amount;
+            if ($template->remaining_amount !== null) {
+                $amount = min($amount, (float) $template->remaining_amount);
+            }
+
+            $maxOrder = Entry::query()
+                ->where('month_id', $month->id)
+                ->where('type', $template->kind)
+                ->max('sort_order');
+            $sortOrder = ($maxOrder ?? 0) + 1;
+
+            Entry::create([
+                'user_id' => $user->id,
+                'month_id' => $month->id,
+                'entry_date' => $month->date_from->toDateString(),
+                'due_date' => null,
+                'type' => $template->kind,
+                'income_source' => $template->kind === 'income' ? 'manual' : null,
+                'direction' => $template->kind === 'income' ? 'in' : 'out',
+                'amount' => $amount,
+                'account_id' => $account->id,
+                'status' => 'open',
+                'description' => $template->name,
+                'recurring_template_id' => $template->id,
+                'sort_order' => $sortOrder,
+            ]);
+
+            $created++;
+        }
+
+        return $created;
     }
 }

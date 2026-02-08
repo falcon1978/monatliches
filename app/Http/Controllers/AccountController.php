@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreAccountRequest;
 use App\Http\Requests\UpdateAccountRequest;
 use App\Models\Account;
+use App\Models\AccountBalance;
 use App\Models\Entry;
 use App\Models\Month;
 use App\Services\AccountBalanceService;
+use App\Models\User;
 
 class AccountController extends Controller
 {
@@ -22,26 +24,7 @@ class AccountController extends Controller
             ->orderBy('name')
             ->get();
 
-        $months = Month::forUser($user)
-            ->visible()
-            ->orderBy('date_from')
-            ->get();
-        $currentMonth = $months->firstWhere('is_current', true);
-
-        if (! $currentMonth) {
-            $today = now()->startOfDay();
-            $currentIndex = $months->search(fn (Month $month) => $today->between($month->date_from, $month->date_to, true));
-
-            if ($currentIndex === false) {
-                $currentIndex = $months->search(fn (Month $month) => $month->date_from->gte($today));
-            }
-
-            if ($currentIndex === false) {
-                $currentIndex = $months->count() ? $months->count() - 1 : null;
-            }
-
-            $currentMonth = $currentIndex !== null ? $months->get($currentIndex) : null;
-        }
+        $currentMonth = $this->resolveCurrentMonthForUser($user);
 
         $forecastBalances = collect();
         $accountBalances = collect();
@@ -88,16 +71,37 @@ class AccountController extends Controller
     {
         $this->authorize('create', Account::class);
 
-        return view('accounts.create');
+        $user = request()->user();
+
+        return view('accounts.create', [
+            'currentMonth' => $this->resolveCurrentMonthForUser($user),
+        ]);
     }
 
     public function store(StoreAccountRequest $request)
     {
-        Account::create([
+        $account = Account::create([
             'user_id' => $request->user()->id,
             'name' => $request->input('name'),
             'type' => $request->input('type'),
         ]);
+
+        $initialBalance = $request->input('initial_balance');
+        if ($initialBalance !== null && in_array($account->type, ['ist', 'clearing'], true)) {
+            $currentMonth = $this->resolveCurrentMonthForUser($request->user());
+            if ($currentMonth) {
+                AccountBalance::updateOrCreate(
+                    [
+                        'user_id' => $request->user()->id,
+                        'account_id' => $account->id,
+                    ],
+                    [
+                        'month_id' => $currentMonth->id,
+                        'amount' => round((float) $initialBalance, 2),
+                    ]
+                );
+            }
+        }
 
         return redirect()->route('accounts.index')->with('status', 'Konto erstellt.');
     }
@@ -129,5 +133,35 @@ class AccountController extends Controller
         $account->delete();
 
         return redirect()->route('accounts.index')->with('status', 'Konto gelöscht.');
+    }
+
+    private function resolveCurrentMonthForUser(User $user): ?Month
+    {
+        $months = Month::forUser($user)
+            ->visible()
+            ->orderBy('date_from')
+            ->get();
+
+        if ($months->isEmpty()) {
+            return null;
+        }
+
+        $currentMonth = $months->firstWhere('is_current', true);
+        if ($currentMonth) {
+            return $currentMonth;
+        }
+
+        $today = now()->startOfDay();
+        $currentIndex = $months->search(fn (Month $month) => $today->between($month->date_from, $month->date_to, true));
+
+        if ($currentIndex === false) {
+            $currentIndex = $months->search(fn (Month $month) => $month->date_from->gte($today));
+        }
+
+        if ($currentIndex === false) {
+            $currentIndex = $months->count() ? $months->count() - 1 : null;
+        }
+
+        return $currentIndex !== null ? $months->get($currentIndex) : null;
     }
 }

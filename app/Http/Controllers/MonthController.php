@@ -786,6 +786,11 @@ class MonthController extends Controller
 
     private function countPendingTemplates(Month $month): int
     {
+        $today = now()->startOfDay();
+        if ($month->date_to->lt($today)) {
+            return 0;
+        }
+
         $user = $month->user;
         $templates = RecurringTemplate::forUser($user)
             ->where('is_active', true)

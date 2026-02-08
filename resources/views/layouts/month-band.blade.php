@@ -1,4 +1,4 @@
-<div class="relative z-[900] border-b accent-box bg-white/80 dark:bg-slate-900/80 backdrop-blur">
+<div class="hidden sm:block relative z-[900] border-b accent-box bg-white/80 dark:bg-slate-900/80 backdrop-blur">
     <div class="w-full px-4 sm:px-6 lg:px-10 py-2">
         <div class="flex items-center gap-3">
             <div class="w-full overflow-x-auto">

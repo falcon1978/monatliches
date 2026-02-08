@@ -425,7 +425,7 @@
 
     <div class="sm:hidden space-y-4">
         <section class="space-y-2">
-            <div class="sticky top-[var(--mobile-header-offset)] z-[850] bg-[var(--surface-2)] px-4 -mx-4 pt-2 pb-2 border-b border-[var(--border)]">
+            <div class="sticky top-[var(--mobile-header-offset)] z-[850] bg-[var(--surface-2)] px-[5px] -mx-[5px] pt-2 pb-2 border-b border-[var(--border)]">
                 <div class="flex items-center justify-between gap-3">
                     <div>
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Einnahmen</h3>
@@ -452,7 +452,7 @@
                             $accountIncomes = $forecastIncomeGroups->get($forecastAccount->id, collect());
                         @endphp
                         @if ($accountIncomes->isNotEmpty())
-                            <div class="sticky top-[var(--mobile-subheader-offset)] z-[840] bg-[var(--surface-2)] px-4 -mx-4 py-1 border-b border-[var(--border)] text-[11px] uppercase tracking-[0.25em] text-emerald-700/80">
+                            <div class="sticky top-[var(--mobile-subheader-offset)] z-[840] bg-[var(--surface-2)] px-[5px] -mx-[5px] py-1 border-b border-[var(--border)] text-[11px] uppercase tracking-[0.25em] text-emerald-700/80">
                                 Erwartet · {{ $forecastAccount->name }}
                             </div>
                             <div class="space-y-1.5">
@@ -464,7 +464,7 @@
                     @endforeach
 
                     @if ($ungroupedForecastIncomes->isNotEmpty())
-                        <div class="sticky top-[var(--mobile-subheader-offset)] z-[840] bg-[var(--surface-2)] px-4 -mx-4 py-1 border-b border-[var(--border)] text-[11px] uppercase tracking-[0.25em] text-emerald-700/80">
+                        <div class="sticky top-[var(--mobile-subheader-offset)] z-[840] bg-[var(--surface-2)] px-[5px] -mx-[5px] py-1 border-b border-[var(--border)] text-[11px] uppercase tracking-[0.25em] text-emerald-700/80">
                             Erwartete Einnahmen
                         </div>
                         <div class="space-y-1.5">
@@ -475,7 +475,7 @@
                     @endif
 
                     @if ($recurringIncomes->isNotEmpty())
-                        <div class="sticky top-[var(--mobile-subheader-offset)] z-[840] bg-[var(--surface-2)] px-4 -mx-4 py-1 border-b border-[var(--border)] text-[11px] uppercase tracking-[0.25em] text-emerald-700/80">
+                        <div class="sticky top-[var(--mobile-subheader-offset)] z-[840] bg-[var(--surface-2)] px-[5px] -mx-[5px] py-1 border-b border-[var(--border)] text-[11px] uppercase tracking-[0.25em] text-emerald-700/80">
                             Wiederkehrende Einnahmen
                         </div>
                         <div class="space-y-1.5">
@@ -486,7 +486,7 @@
                     @endif
 
                     @if ($manualIncomes->isNotEmpty())
-                        <div class="sticky top-[var(--mobile-subheader-offset)] z-[840] bg-[var(--surface-2)] px-4 -mx-4 py-1 border-b border-[var(--border)] text-[11px] uppercase tracking-[0.25em] text-emerald-700/80">
+                        <div class="sticky top-[var(--mobile-subheader-offset)] z-[840] bg-[var(--surface-2)] px-[5px] -mx-[5px] py-1 border-b border-[var(--border)] text-[11px] uppercase tracking-[0.25em] text-emerald-700/80">
                             Weitere Einnahmen
                         </div>
                         <div class="space-y-1.5">
@@ -500,7 +500,7 @@
         </section>
 
         <section class="space-y-2">
-            <div class="sticky top-[var(--mobile-header-offset)] z-[850] bg-[var(--surface-2)] px-4 -mx-4 pt-2 pb-2 border-b border-[var(--border)]">
+            <div class="sticky top-[var(--mobile-header-offset)] z-[850] bg-[var(--surface-2)] px-[5px] -mx-[5px] pt-2 pb-2 border-b border-[var(--border)]">
                 <div class="flex items-center justify-between gap-3">
                     <div>
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Rechnungen</h3>
@@ -569,7 +569,7 @@
         </section>
 
         <section class="space-y-2">
-            <div class="sticky top-[var(--mobile-header-offset)] z-[850] bg-[var(--surface-2)] px-4 -mx-4 pt-2 pb-2 border-b border-[var(--border)]">
+            <div class="sticky top-[var(--mobile-header-offset)] z-[850] bg-[var(--surface-2)] px-[5px] -mx-[5px] pt-2 pb-2 border-b border-[var(--border)]">
                 <div class="flex items-center justify-between gap-3">
                     <div>
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Fixkosten</h3>

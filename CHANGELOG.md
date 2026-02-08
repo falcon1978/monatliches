@@ -1,5 +1,8 @@
 # Changelog
 
+## v2.0.1 - 2026-02-08
+- Mobile Monatsansicht: Header/Navi stabilisiert beim Scrollen.
+
 ## v1.6.6 - 2026-02-06
 - Update-Check: installierte Version robust aus mehreren Quellen ermitteln.
 - Update-Installer: Paketversion auch ohne aktuelle updates/latest.json erkennen.

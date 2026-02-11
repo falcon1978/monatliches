@@ -16,7 +16,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('month_id')->constrained()->cascadeOnDelete();
-            $table->date('entry_date')->default(DB::raw('CURRENT_DATE'));
+            $table->date('entry_date')->default(DB::raw('(CURRENT_DATE)'));
             $table->enum('type', ['income', 'expense', 'fixcost', 'transfer']);
             $table->enum('direction', ['in', 'out']);
             $table->decimal('amount', 10, 2);

@@ -1,7 +1,7 @@
 {
-  "version": "2.1.1",
-  "released_at": "2026-02-08",
-  "download_url": "https://github.com/falcon1978/monatliches/releases/download/2.1.1/monatliches-dist-v2.1.1.zip",
-  "sha256": "0ebc77dc0a103b2e972653c4a6b94e5b411d58fc8be8c75a7a768581d47a0f3b",
-  "changelog": "Update-Version stabilisiert; Release-Metadaten im Paket konsistent."
+  "version": "2.1.2",
+  "released_at": "2026-02-13",
+  "download_url": "https://github.com/falcon1978/monatliches/releases/download/2.1.2/monatliches-dist-v2.1.2.zip",
+  "sha256": "6ee525cab2a9f583dbb8b25008244c0108cf164b943b9de9ffa31bbaf5397133",
+  "changelog": "Kontostände: Inline-Rechnen (+/-) und Direktüberschreiben im Editor."
 }

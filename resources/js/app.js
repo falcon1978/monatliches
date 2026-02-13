@@ -6,26 +6,131 @@ window.Alpine = Alpine;
 
 Alpine.data('balanceEditor', (value, display) => ({
     editing: false,
+    baseValue: Number.parseFloat(value) || 0,
+    baseDisplay: display || '0.00',
     value,
-    display,
+    editMode: 'delta',
+    operator: '-',
+    delta: '',
+    absolute: '',
     focusInput() {
         this.editing = true;
-        this.$nextTick(() => this.$refs.input?.focus());
+        this.editMode = 'delta';
+        this.operator = '-';
+        this.delta = '';
+        this.absolute = this.baseValue.toFixed(2);
+        this.value = this.baseValue.toFixed(2);
+        this.$nextTick(() => this.$refs.deltaInput?.focus());
     },
-    sync() {
-        this.value = (this.display || '').toString().replace(/'/g, '').replace(',', '.');
-    },
-    format() {
-        const normalized = (this.display || '').toString().replace(/'/g, '').replace(',', '.');
-        const num = parseFloat(normalized);
-        if (Number.isNaN(num)) {
+    setEditMode(mode) {
+        if (mode !== 'delta' && mode !== 'absolute') {
             return;
         }
-        const fixed = num.toFixed(2);
+        this.editMode = mode;
+        this.sync();
+        this.$nextTick(() => {
+            if (mode === 'absolute') {
+                this.$refs.absoluteInput?.focus();
+                this.$refs.absoluteInput?.select();
+                return;
+            }
+            this.$refs.deltaInput?.focus();
+        });
+    },
+    cancel() {
+        this.editing = false;
+        this.editMode = 'delta';
+        this.operator = '-';
+        this.delta = '';
+        this.absolute = this.baseValue.toFixed(2);
+        this.value = this.baseValue.toFixed(2);
+    },
+    parseNumber(input) {
+        const normalized = (input ?? '')
+            .toString()
+            .trim()
+            .replace(/'/g, '')
+            .replace(/\s+/g, '')
+            .replace(',', '.');
+
+        if (normalized === '' || !/^-?(?:\d+|\d*\.\d+)$/.test(normalized)) {
+            return Number.NaN;
+        }
+
+        const parsed = Number.parseFloat(normalized);
+        return Number.isFinite(parsed) ? parsed : Number.NaN;
+    },
+    formatAmount(amount) {
+        const fixed = amount.toFixed(2);
         const parts = fixed.split('.');
         parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, "'");
-        this.display = parts.join('.');
+        return parts.join('.');
+    },
+    computeNextValue() {
+        const parsedDelta = this.parseNumber(this.delta);
+        if (Number.isNaN(parsedDelta)) {
+            return this.baseValue;
+        }
+        const delta = Math.abs(parsedDelta);
+        return this.operator === '+' ? this.baseValue + delta : this.baseValue - delta;
+    },
+    computeAbsoluteValue() {
+        const parsedAbsolute = this.parseNumber(this.absolute);
+        if (Number.isNaN(parsedAbsolute)) {
+            return this.baseValue;
+        }
+        return parsedAbsolute;
+    },
+    deltaDisplay() {
+        const parsedDelta = this.parseNumber(this.delta);
+        if (Number.isNaN(parsedDelta)) {
+            return '0.00';
+        }
+        return this.formatAmount(Math.abs(parsedDelta));
+    },
+    sync() {
+        if (this.editMode === 'absolute') {
+            this.value = this.computeAbsoluteValue().toFixed(2);
+            return;
+        }
+        this.value = this.computeNextValue().toFixed(2);
+    },
+    resultDisplay() {
+        if (this.editMode === 'absolute') {
+            return this.formatAmount(this.computeAbsoluteValue());
+        }
+        return this.formatAmount(this.computeNextValue());
+    },
+    prepareSubmit() {
+        let next = this.baseValue;
+
+        if (this.editMode === 'absolute') {
+            const parsedAbsolute = this.parseNumber(this.absolute);
+            if (Number.isNaN(parsedAbsolute)) {
+                this.$refs.absoluteInput?.focus();
+                return false;
+            }
+            next = parsedAbsolute;
+        } else {
+            const parsedDelta = this.parseNumber(this.delta);
+            if (Number.isNaN(parsedDelta)) {
+                this.$refs.deltaInput?.focus();
+                return false;
+            }
+            next = this.computeNextValue();
+        }
+
+        const fixed = next.toFixed(2);
+        this.baseValue = Number.parseFloat(fixed);
+        this.baseDisplay = this.formatAmount(this.baseValue);
         this.value = fixed;
+        this.editing = false;
+        this.editMode = 'delta';
+        this.delta = '';
+        this.absolute = fixed;
+        this.operator = '-';
+
+        return true;
     },
 }));
 

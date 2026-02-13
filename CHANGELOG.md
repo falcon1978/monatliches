@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.2 - 2026-02-13
+- Kontostände: Inline-Editor mit zwei Modi (Rechnen via +/- und Direktüberschreiben).
+- Kontostände: Operator-Toggle deutlicher hervorgehoben, aktiver Zustand nutzt Benutzer-Akzentfarbe.
+- Kontostände: Ergebnisvorschau im Editor verbessert.
+
 ## v2.1.1 - 2026-02-08
 - Update: Installierte Version wird nicht mehr auf eine niedrigere Version überschrieben.
 - Release-Metadaten im Update-Paket konsistent.

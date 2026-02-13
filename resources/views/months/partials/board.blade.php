@@ -223,7 +223,7 @@
                             @click="if (!editing) { focusInput() }"
                             @keydown.enter.prevent="if (!editing) { focusInput() }"
                             @keydown.space.prevent="if (!editing) { focusInput() }"
-                            @click.outside="editing = false; format()"
+                            @click.outside="if (editing) { cancel() }"
                             role="button"
                             tabindex="0"
                             :class="editing ? 'ring-1 ring-[var(--accent)]/40' : ''"
@@ -232,28 +232,99 @@
                                 <div class="text-xs uppercase tracking-wide text-gray-500">{{ $account->name }}</div>
                                 <x-info-tooltip text="Kontostand hier jederzeit anpassen – ideal, wenn du kleine Ausgaben nicht einzeln erfassen willst." />
                             </div>
-                            <form method="POST" action="{{ route('months.balances.update', [$month, $account]) }}" class="mt-2 flex items-center gap-2">
+                            <form method="POST" action="{{ route('months.balances.update', [$month, $account]) }}" class="mt-2 flex items-center gap-2" @submit="if (!prepareSubmit()) { $event.preventDefault() }">
                                 @csrf
                                 @method('PATCH')
+                                <input type="hidden" name="amount" x-model="value">
                                 <div class="flex-1">
                                     <div x-show="!editing" class="flex items-baseline justify-end gap-2">
                                         <span class="text-[10px] uppercase tracking-[0.2em] text-gray-400">CHF</span>
                                         <span class="text-lg font-semibold tabular-nums {{ $balanceClass }}">{{ $fmt($balance) }}</span>
                                     </div>
-                                    <div x-show="editing" x-cloak class="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-white/90 dark:bg-slate-900/80 px-3 py-2 shadow-inner">
-                                        <span class="text-[10px] uppercase tracking-[0.2em] text-gray-400">CHF</span>
-                                        <input type="hidden" name="amount" x-model="value">
-                                        <input
-                                            x-ref="input"
-                                            type="text"
-                                            inputmode="decimal"
-                                            x-model="display"
-                                            class="flex-1 bg-transparent border-0 p-0 text-base font-semibold text-right tabular-nums text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-0"
-                                            @input="sync()"
-                                            @blur="format()"
-                                            @keydown.enter.stop.prevent="$el.form.submit()"
-                                            @keydown.escape="editing = false"
-                                        >
+                                    <div x-show="editing" x-cloak class="space-y-2 rounded-xl border border-[var(--border)] bg-white/90 dark:bg-slate-900/80 px-3 py-2 shadow-inner">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <div class="inline-flex items-center rounded-full bg-slate-200/80 dark:bg-slate-800/90 p-0.5 shadow-inner">
+                                                <button
+                                                    type="button"
+                                                    @click="setEditMode('delta')"
+                                                    :aria-pressed="editMode === 'delta' ? 'true' : 'false'"
+                                                    class="h-7 rounded-full px-3 text-[11px] font-semibold uppercase tracking-[0.15em] transition-all duration-150"
+                                                    :class="editMode === 'delta' ? 'bg-[var(--accent)] text-white shadow-sm ring-1 ring-[var(--accent)]/40' : 'text-gray-600 dark:text-slate-300'"
+                                                >Rechnen</button>
+                                                <button
+                                                    type="button"
+                                                    @click="setEditMode('absolute')"
+                                                    :aria-pressed="editMode === 'absolute' ? 'true' : 'false'"
+                                                    class="h-7 rounded-full px-3 text-[11px] font-semibold uppercase tracking-[0.15em] transition-all duration-150"
+                                                    :class="editMode === 'absolute' ? 'bg-[var(--accent)] text-white shadow-sm ring-1 ring-[var(--accent)]/40' : 'text-gray-600 dark:text-slate-300'"
+                                                >Direkt</button>
+                                            </div>
+                                            <div class="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500 dark:text-slate-400" x-text="editMode === 'delta' ? 'Modus Rechnen' : 'Modus Direkt'"></div>
+                                        </div>
+
+                                        <div x-show="editMode === 'delta'" x-cloak class="space-y-1">
+                                            <div class="flex items-center justify-end gap-2">
+                                                <span class="text-[10px] uppercase tracking-[0.2em] text-gray-400">CHF</span>
+                                                <span class="text-base font-semibold tabular-nums text-gray-900 dark:text-slate-100" x-text="baseDisplay"></span>
+                                                <div class="inline-flex items-center rounded-full bg-slate-200/80 dark:bg-slate-800/90 p-0.5 shadow-inner">
+                                                    <button
+                                                        type="button"
+                                                        @click="operator = '-'; sync()"
+                                                        aria-label="Minus"
+                                                        :aria-pressed="operator === '-' ? 'true' : 'false'"
+                                                        class="h-7 w-8 rounded-full text-sm font-black leading-none transition-all duration-150"
+                                                        :class="operator === '-' ? 'bg-[var(--accent)] text-white shadow-sm ring-1 ring-[var(--accent)]/40' : 'text-gray-500 dark:text-slate-300 hover:text-gray-800 dark:hover:text-slate-100'"
+                                                    >-</button>
+                                                    <button
+                                                        type="button"
+                                                        @click="operator = '+'; sync()"
+                                                        aria-label="Plus"
+                                                        :aria-pressed="operator === '+' ? 'true' : 'false'"
+                                                        class="h-7 w-8 rounded-full text-sm font-black leading-none transition-all duration-150"
+                                                        :class="operator === '+' ? 'bg-[var(--accent)] text-white shadow-sm ring-1 ring-[var(--accent)]/40' : 'text-gray-500 dark:text-slate-300 hover:text-gray-800 dark:hover:text-slate-100'"
+                                                    >+</button>
+                                                </div>
+                                                <input
+                                                    x-ref="deltaInput"
+                                                    type="text"
+                                                    inputmode="decimal"
+                                                    x-model="delta"
+                                                    placeholder="0.00"
+                                                    :required="editMode === 'delta'"
+                                                    class="w-24 bg-transparent rounded-md border border-gray-300 px-2 py-1 text-sm font-semibold text-right tabular-nums text-gray-900 dark:text-slate-100 focus:border-[var(--accent)] focus:ring-[var(--accent)]"
+                                                    @input="sync()"
+                                                    @keydown.enter.stop.prevent="$el.form.requestSubmit()"
+                                                    @keydown.escape="cancel()"
+                                                >
+                                            </div>
+                                        </div>
+
+                                        <div x-show="editMode === 'absolute'" x-cloak class="space-y-1">
+                                            <div class="flex items-center justify-end gap-2">
+                                                <span class="text-[10px] uppercase tracking-[0.2em] text-gray-400">CHF</span>
+                                                <input
+                                                    x-ref="absoluteInput"
+                                                    type="text"
+                                                    inputmode="decimal"
+                                                    x-model="absolute"
+                                                    :required="editMode === 'absolute'"
+                                                    class="w-36 bg-transparent rounded-md border border-gray-300 px-2 py-1 text-sm font-semibold text-right tabular-nums text-gray-900 dark:text-slate-100 focus:border-[var(--accent)] focus:ring-[var(--accent)]"
+                                                    @input="sync()"
+                                                    @keydown.enter.stop.prevent="$el.form.requestSubmit()"
+                                                    @keydown.escape="cancel()"
+                                                >
+                                            </div>
+                                            <div class="text-[10px] text-right font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">Direkt überschreiben</div>
+                                        </div>
+
+                                        <div class="rounded-lg bg-gradient-to-r from-gray-50/90 to-white/90 dark:from-slate-900/70 dark:to-slate-800/60 px-2 py-1 text-[11px] text-right text-gray-500 dark:text-slate-400">
+                                            <span class="uppercase tracking-[0.2em] text-gray-400">Ergebnis</span>
+                                            <span
+                                                class="ml-1 tabular-nums font-semibold"
+                                                :class="parseFloat(value) < 0 ? 'text-red-700 dark:text-red-200' : 'text-emerald-700 dark:text-emerald-200'"
+                                                x-text="editMode === 'delta' ? 'CHF ' + baseDisplay + ' ' + operator + ' ' + deltaDisplay() + ' = ' + resultDisplay() : 'CHF ' + baseDisplay + ' -> ' + resultDisplay()"
+                                            ></span>
+                                        </div>
                                     </div>
                                 </div>
                                 <button x-show="editing" x-cloak type="submit" class="touch-target px-3 py-2 bg-[var(--accent)] text-white rounded-xl text-xs font-semibold shadow-sm">OK</button>

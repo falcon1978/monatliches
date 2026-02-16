@@ -28,7 +28,7 @@ class StoreMonthEntryRequest extends FormRequest
             $accountRule = Rule::exists('accounts', 'id')
                 ->where(fn ($query) => $query
                     ->where('user_id', $this->user()->id)
-                    ->where('type', 'forecast'));
+                    ->whereIn('type', ['forecast', 'clearing']));
         }
 
         $amountRules = ['required', 'numeric'];

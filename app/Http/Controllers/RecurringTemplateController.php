@@ -217,13 +217,14 @@ class RecurringTemplateController extends Controller
                 continue;
             }
 
-            $accountType = $template->kind === 'income' ? 'forecast' : 'ist';
             $account = $template->defaultAccount;
-            if ($template->kind === 'income' && $account && $account->type !== 'forecast') {
+            if ($template->kind === 'income' && $account && ! in_array($account->type, ['forecast', 'clearing'], true)) {
                 $account = null;
             }
             $account = $account
-                ?? $accounts->get($accountType)?->first()
+                ?? ($template->kind === 'income'
+                    ? ($accounts->get('forecast')?->first() ?? $accounts->get('clearing')?->first())
+                    : $accounts->get('ist')?->first())
                 ?? $user->accounts()->first();
 
             if (! $account) {

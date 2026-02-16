@@ -596,13 +596,14 @@ class MonthController extends Controller
                 continue;
             }
 
-            $accountType = $template->kind === 'income' ? 'forecast' : 'ist';
             $account = $template->defaultAccount;
-            if ($template->kind === 'income' && $account && $account->type !== 'forecast') {
+            if ($template->kind === 'income' && $account && ! in_array($account->type, ['forecast', 'clearing'], true)) {
                 $account = null;
             }
             $account = $account
-                ?? $accounts->get($accountType)?->first()
+                ?? ($template->kind === 'income'
+                    ? ($accounts->get('forecast')?->first() ?? $accounts->get('clearing')?->first())
+                    : $accounts->get('ist')?->first())
                 ?? $user->accounts()->first();
 
             if (! $account) {
@@ -682,14 +683,14 @@ class MonthController extends Controller
                     });
             })
             ->whereHas('account', static function ($query) {
-                $query->where('type', 'forecast');
+                $query->whereIn('type', ['forecast', 'clearing']);
             })
             ->with('relatedTransfersOut')
             ->get()
             ->groupBy('account_id')
             ->map(static fn ($entries) => round($entries->sum(static fn (Entry $entry) => $entry->open_amount), 2));
 
-        $balanceAccounts = $accounts->whereIn('type', ['ist', 'clearing']);
+        $balanceAccounts = $accounts->where('type', 'ist');
         $balanceMeta = $balanceService->balanceMetaForMonth($month, $balanceAccounts);
         $accountBalances = collect($balanceMeta)->mapWithKeys(static function ($meta, $accountId) {
             return [$accountId => $meta['effective']];

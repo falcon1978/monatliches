@@ -24,8 +24,8 @@ class AccountBalanceController extends Controller
             abort(403);
         }
 
-        if (! in_array($account->type, ['ist', 'clearing'], true)) {
-            return back()->withErrors(['balance' => 'Nur Ist- oder Verrechnungskonten können einen Kontostand haben.']);
+        if ($account->type !== 'ist') {
+            return back()->withErrors(['balance' => 'Nur Ist-Konten können einen Kontostand haben.']);
         }
 
         $data = $request->validate([

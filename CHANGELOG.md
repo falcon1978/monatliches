@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.3 - 2026-02-16
+- Einnahmen: Forecast-Einträge können in der Monatsansicht beim Bearbeiten auf ein anderes Forecast-/Verrechnungskonto verschoben werden.
+- Monatsansicht: Plus-Icon für neue Einnahmen nach oben zum Bereichs-Header verschoben (konsistent zu Rechnungen).
+- Kontologik: Verrechnungskonten werden nicht mehr als Ist-Kontostand geführt und erscheinen stattdessen bei erwarteten Einnahmen.
+
 ## v2.1.2 - 2026-02-13
 - Kontostände: Inline-Editor mit zwei Modi (Rechnen via +/- und Direktüberschreiben).
 - Kontostände: Operator-Toggle deutlicher hervorgehoben, aktiver Zustand nutzt Benutzer-Akzentfarbe.

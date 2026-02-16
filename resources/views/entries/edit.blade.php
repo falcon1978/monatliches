@@ -62,7 +62,7 @@
                         @php
                             $showAccountSelect = $entry->type !== 'income'
                                 || $entry->income_source === 'expected'
-                                || ($entry->account && $entry->account->type !== 'forecast');
+                                || ($entry->account && ! in_array($entry->account->type, ['forecast', 'clearing'], true));
                         @endphp
                         @if ($showAccountSelect)
                             <div>

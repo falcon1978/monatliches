@@ -51,7 +51,8 @@
 <div class="bg-white dark:bg-slate-900/80 shadow sm:rounded-lg p-6 space-y-4 border accent-box">
     <h3 class="text-lg font-semibold text-gray-800">Neuer Eintrag</h3>
     @php
-        $defaultForecastAccount = $accounts->firstWhere('type', 'forecast');
+        $defaultForecastAccount = $accounts->firstWhere('type', 'forecast')
+            ?? $accounts->firstWhere('type', 'clearing');
     @endphp
     <form method="POST" action="{{ route('months.entries.store', $month) }}" class="grid grid-cols-1 md:grid-cols-8 gap-3" x-data="{ type: 'income', incomeSource: 'expected' }">
         @csrf
@@ -112,9 +113,9 @@
                         $accountLabel = $entry->account?->name ?? '–';
                         if ($entry->type === 'income') {
                             $source = $entry->income_source
-                                ?? ($entry->recurring_template_id ? 'manual' : ($entry->account?->type === 'forecast' ? 'expected' : 'manual'));
+                                ?? ($entry->recurring_template_id ? 'manual' : (in_array($entry->account?->type, ['forecast', 'clearing'], true) ? 'expected' : 'manual'));
 
-                            if ($source !== 'expected' && $entry->account?->type === 'forecast') {
+                            if ($source !== 'expected' && in_array($entry->account?->type, ['forecast', 'clearing'], true)) {
                                 $accountLabel = 'Konto bei Zahlung';
                             }
                         }

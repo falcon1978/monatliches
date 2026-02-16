@@ -93,7 +93,7 @@ class Entry extends Model
         if ($source === null) {
             $source = $this->recurring_template_id
                 ? 'manual'
-                : ($this->account?->type === 'forecast' ? 'expected' : 'manual');
+                : (in_array($this->account?->type, ['forecast', 'clearing'], true) ? 'expected' : 'manual');
         }
 
         $hasTransfers = $this->relationLoaded('relatedTransfersOut')

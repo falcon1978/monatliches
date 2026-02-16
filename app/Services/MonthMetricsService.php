@@ -119,12 +119,12 @@ class MonthMetricsService
                     ->orWhere(function ($query) {
                         $query->whereNull('income_source')
                             ->whereHas('account', static function ($query) {
-                                $query->where('type', 'forecast');
+                                $query->whereIn('type', ['forecast', 'clearing']);
                             });
                     });
             })
             ->whereHas('account', static function ($query) {
-                $query->where('type', 'forecast');
+                $query->whereIn('type', ['forecast', 'clearing']);
             })
             ->with('relatedTransfersOut')
             ->get();
@@ -146,7 +146,7 @@ class MonthMetricsService
                         $query->whereNull('income_source')
                             ->whereNull('recurring_template_id')
                             ->whereHas('account', static function ($query) {
-                                $query->where('type', '!=', 'forecast');
+                                $query->whereNotIn('type', ['forecast', 'clearing']);
                             });
                     });
             })

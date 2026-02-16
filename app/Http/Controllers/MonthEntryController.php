@@ -73,12 +73,12 @@ class MonthEntryController extends Controller
 
         if ($type === 'income' && empty($data['account_id'])) {
             $fallbackAccount = Account::forUser($request->user())
-                ->where('type', 'forecast')
+                ->whereIn('type', ['forecast', 'clearing'])
                 ->orderBy('id')
                 ->first();
 
             if (! $fallbackAccount) {
-                return back()->withErrors(['account_id' => 'Kein Forecast-Konto vorhanden.']);
+                return back()->withErrors(['account_id' => 'Kein Forecast-/Verrechnungskonto vorhanden.']);
             }
 
             $data['account_id'] = $fallbackAccount->id;
@@ -87,7 +87,7 @@ class MonthEntryController extends Controller
         if ($type === 'income' && $incomeSource === null) {
             $account = Account::forUser($request->user())->find($data['account_id']);
             if ($account) {
-                $incomeSource = $account->type === 'forecast' ? 'expected' : 'manual';
+                $incomeSource = in_array($account->type, ['forecast', 'clearing'], true) ? 'expected' : 'manual';
             }
         }
 
@@ -140,7 +140,7 @@ class MonthEntryController extends Controller
         if ($source === null) {
             $source = $income->recurring_template_id
                 ? 'manual'
-                : ($income->account?->type === 'forecast' ? 'expected' : 'manual');
+                : (in_array($income->account?->type, ['forecast', 'clearing'], true) ? 'expected' : 'manual');
         }
         $useTransfers = $source === 'expected' || $income->relatedTransfersOut->isNotEmpty();
 
@@ -160,8 +160,8 @@ class MonthEntryController extends Controller
             ->findOrFail($request->integer('target_account_id'));
 
         if ($useTransfers) {
-            if (! $income->account || $income->account->type !== 'forecast') {
-                return back()->withErrors(['entry_id' => 'Forecast-Konto fehlt für die Zahlung.']);
+            if (! $income->account || ! in_array($income->account->type, ['forecast', 'clearing'], true)) {
+                return back()->withErrors(['entry_id' => 'Forecast-/Verrechnungskonto fehlt für die Zahlung.']);
             }
 
             $wasPaid = $income->status === 'paid';

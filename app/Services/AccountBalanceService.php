@@ -16,7 +16,7 @@ class AccountBalanceService
             ->where('user_id', $month->user_id)
             ->whereIn('type', ['income', 'expense', 'fixcost', 'transfer'])
             ->whereHas('account', static function ($query) {
-                $query->whereIn('type', ['ist', 'clearing']);
+                $query->where('type', 'ist');
             });
 
         if ($accounts) {
@@ -46,7 +46,7 @@ class AccountBalanceService
 
     public function movementForAccount(Month $month, Account $account): float
     {
-        if (! in_array($account->type, ['ist', 'clearing'], true)) {
+        if ($account->type !== 'ist') {
             return 0.0;
         }
 
@@ -88,7 +88,7 @@ class AccountBalanceService
     public function effectiveBalanceSum(Month $month): float
     {
         $accounts = $month->user->accounts()
-            ->whereIn('type', ['ist', 'clearing'])
+            ->where('type', 'ist')
             ->get(['id', 'type']);
 
         $meta = $this->balanceMetaForMonth($month, $accounts);

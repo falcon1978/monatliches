@@ -35,8 +35,8 @@
         'custom' => 'Benutzerdefiniert',
     ];
 
-    $forecastAccounts = $accounts->where('type', 'forecast');
-    $balanceAccounts = $accounts->whereIn('type', ['ist', 'clearing']);
+    $forecastAccounts = $accounts->whereIn('type', ['forecast', 'clearing']);
+    $balanceAccounts = $accounts->where('type', 'ist');
     $istAccounts = $accounts->where('type', 'ist');
     $payAccounts = $accounts->whereIn('type', ['ist', 'clearing']);
     $defaultIstAccount = $istAccounts->first();
@@ -55,7 +55,7 @@
         ->whereNull('recurring_template_id')
         ->filter(function ($entry) {
             $source = $entry->income_source
-                ?? ($entry->account?->type === 'forecast' ? 'expected' : 'manual');
+                ?? (in_array($entry->account?->type, ['forecast', 'clearing'], true) ? 'expected' : 'manual');
 
             return $source === 'manual';
         })
@@ -64,7 +64,7 @@
         ->whereNull('recurring_template_id')
         ->filter(function ($entry) {
             $source = $entry->income_source
-                ?? ($entry->account?->type === 'forecast' ? 'expected' : 'manual');
+                ?? (in_array($entry->account?->type, ['forecast', 'clearing'], true) ? 'expected' : 'manual');
 
             return $source === 'expected' && in_array($entry->status, ['open', 'partial'], true);
         })
@@ -797,6 +797,9 @@
                 <button type="button" class="inline-flex h-6 w-6 items-center justify-center rounded border border-[var(--accent)] bg-white/80 text-xs font-semibold text-[var(--accent)] transition hover:text-[var(--accent)]" :class="moveMode ? 'border-[var(--accent)] bg-[var(--accent)] text-white' : ''" @click="moveMode = !moveMode" title="Verschieben" aria-label="Verschieben">
                     &harr;
                 </button>
+                <button type="button" class="inline-flex h-6 w-6 items-center justify-center rounded border border-[var(--accent)] bg-white/80 text-xs font-semibold text-[var(--accent)] transition hover:text-[var(--accent)]" :class="addExpected ? 'border-[var(--accent)] bg-[var(--accent)] text-white' : ''" @click="addExpected = !addExpected" title="Neue Einnahme" aria-label="Neue Einnahme">
+                    +
+                </button>
             </x-slot>
             <table class="w-full text-sm">
                 <thead>
@@ -808,16 +811,7 @@
                 <tbody data-sortable data-order-url="{{ route('months.entries.order', $month) }}" data-type="income">
                     @if ($forecastAccounts->isNotEmpty())
                         <tr class="border-t border-green-200 text-[11px] uppercase tracking-wide text-emerald-700/90 dark:text-emerald-200/90">
-                            <td class="pt-2 pb-1">
-                                <div class="flex flex-col gap-0.5">
-                                    <div class="flex items-center gap-2">
-                                        <span>Einnahmen erwartet</span>
-                                        <button type="button" class="inline-flex h-5 w-7 items-center justify-center rounded border border-[var(--accent)] bg-white/80 text-xs font-semibold text-[var(--accent)] transition hover:text-[var(--accent)]" :class="addExpected ? 'border-[var(--accent)] bg-[var(--accent)] text-white' : ''" @click="addExpected = !addExpected" title="Erwartete Einnahme erfassen" aria-label="Erwartete Einnahme erfassen">
-                                            +
-                                        </button>
-                                    </div>
-                                </div>
-                            </td>
+                            <td class="pt-2 pb-1">Einnahmen erwartet</td>
                             <td class="pt-2 pb-1 text-right"></td>
                         </tr>
                         @php $incomeFormId = 'income-create-'.$month->id; @endphp
@@ -883,9 +877,12 @@
                             description: {{ $json($income->description) }},
                             amount: {{ $json($incomeAmountInput) }},
                             amountDisplay: {{ $json($incomeAmountDisplay) }},
+                            accountId: {{ $json((string) ($income->account_id ?? '')) }},
                             originalDescription: {{ $json($income->description) }},
                             originalAmount: {{ $json($incomeAmountInput) }},
                             originalAmountDisplay: {{ $json($incomeAmountDisplay) }},
+                            originalAccountId: {{ $json((string) ($income->account_id ?? '')) }},
+                            canSwitchForecastAccount: {{ in_array($income->account?->type, ['forecast', 'clearing'], true) ? 'true' : 'false' }},
                             paymentAmount: {{ $json($openAmount) }},
                             syncAmount() {
                                 this.amount = (this.amountDisplay || '').toString().replace(/'/g, '').replace(',', '.');
@@ -910,7 +907,7 @@
                                 </form>
                                 <input type="hidden" name="entry_date" form="{{ $incomeEditId }}" value="{{ $income->entry_date->format('Y-m-d') }}">
                                 <input type="hidden" name="status" form="{{ $incomeEditId }}" value="{{ $income->status }}">
-                                <input type="hidden" name="account_id" form="{{ $incomeEditId }}" value="{{ $income->account_id }}">
+                                <input type="hidden" name="account_id" form="{{ $incomeEditId }}" x-model="accountId" :disabled="canSwitchForecastAccount">
                                 <input type="hidden" name="amount" form="{{ $incomeEditId }}" x-model="amount">
                                 <div x-show="!editing" class="flex items-start gap-1">
                                     <button type="button" class="inline-flex items-center accent-icon hover:opacity-80" title="Bearbeiten" aria-label="Bearbeiten" @click="editing = true; payOpen = false; $nextTick(() => $refs.description.focus())">
@@ -920,6 +917,13 @@
                                     @include('months.partials.carryover-badge', ['entry' => $income])
                                 </div>
                                 <input x-show="editing" x-cloak x-ref="description" type="text" name="description" form="{{ $incomeEditId }}" x-model="description" class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:border-[var(--accent)] focus:ring-[var(--accent)]" @keydown.enter.stop.prevent="$el.form.submit()">
+                                <div x-show="editing && canSwitchForecastAccount" x-cloak class="mt-1">
+                                    <select name="account_id" form="{{ $incomeEditId }}" x-model="accountId" :disabled="!editing || !canSwitchForecastAccount" class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:border-[var(--accent)] focus:ring-[var(--accent)]">
+                                        @foreach ($forecastAccounts as $account)
+                                            <option value="{{ $account->id }}">{{ $account->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
                                 @if ($income->recurringTemplate)
                                     <div x-show="editing" x-cloak class="mt-1 text-[11px] text-gray-500">
                                         Änderung gilt nur für diesen Monat. Willst du die Einnahme generell anpassen,
@@ -963,7 +967,7 @@
                                         </div>
                                         <div x-show="editing" x-cloak class="flex items-center justify-end gap-2">
                                             <button type="submit" form="{{ $incomeEditId }}" class="{{ $editActionPrimary }}">OK</button>
-                                            <button type="button" class="{{ $editActionGhost }}" @click="editing = false; description = originalDescription; amount = originalAmount; amountDisplay = originalAmountDisplay;">X</button>
+                                            <button type="button" class="{{ $editActionGhost }}" @click="editing = false; description = originalDescription; amount = originalAmount; amountDisplay = originalAmountDisplay; accountId = originalAccountId;">X</button>
                                             <form method="POST" action="{{ route('entries.destroy', $income) }}" onsubmit="return confirm('Eintrag wirklich löschen?');">
                                                 @csrf
                                                 @method('DELETE')
@@ -1016,9 +1020,12 @@
                                 description: {{ $json($income->description) }},
                                 amount: {{ $json($incomeAmountInput) }},
                                 amountDisplay: {{ $json($incomeAmountDisplay) }},
+                                accountId: {{ $json((string) ($income->account_id ?? '')) }},
                                 originalDescription: {{ $json($income->description) }},
                                 originalAmount: {{ $json($incomeAmountInput) }},
                                 originalAmountDisplay: {{ $json($incomeAmountDisplay) }},
+                                originalAccountId: {{ $json((string) ($income->account_id ?? '')) }},
+                                canSwitchForecastAccount: {{ in_array($income->account?->type, ['forecast', 'clearing'], true) ? 'true' : 'false' }},
                                 paymentAmount: {{ $json($openAmount) }},
                                 syncAmount() {
                                     this.amount = (this.amountDisplay || '').toString().replace(/'/g, '').replace(',', '.');
@@ -1043,7 +1050,7 @@
                                     </form>
                                     <input type="hidden" name="entry_date" form="{{ $incomeEditId }}" value="{{ $income->entry_date->format('Y-m-d') }}">
                                     <input type="hidden" name="status" form="{{ $incomeEditId }}" value="{{ $income->status }}">
-                                    <input type="hidden" name="account_id" form="{{ $incomeEditId }}" value="{{ $income->account_id }}">
+                                    <input type="hidden" name="account_id" form="{{ $incomeEditId }}" x-model="accountId" :disabled="canSwitchForecastAccount">
                                     <input type="hidden" name="amount" form="{{ $incomeEditId }}" x-model="amount">
                                     <div x-show="!editing" class="flex items-start gap-1">
                                         <button type="button" class="inline-flex items-center accent-icon hover:opacity-80" title="Bearbeiten" aria-label="Bearbeiten" @click="editing = true; payOpen = false; $nextTick(() => $refs.description.focus())">
@@ -1053,6 +1060,13 @@
                                         @include('months.partials.carryover-badge', ['entry' => $income])
                                     </div>
                                     <input x-show="editing" x-cloak x-ref="description" type="text" name="description" form="{{ $incomeEditId }}" x-model="description" class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:border-[var(--accent)] focus:ring-[var(--accent)]" @keydown.enter.stop.prevent="$el.form.submit()">
+                                    <div x-show="editing && canSwitchForecastAccount" x-cloak class="mt-1">
+                                        <select name="account_id" form="{{ $incomeEditId }}" x-model="accountId" :disabled="!editing || !canSwitchForecastAccount" class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:border-[var(--accent)] focus:ring-[var(--accent)]">
+                                            @foreach ($forecastAccounts as $account)
+                                                <option value="{{ $account->id }}">{{ $account->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
                                     @if ($income->recurringTemplate)
                                         <div x-show="editing" x-cloak class="mt-1 text-[11px] text-gray-500">
                                             Änderung gilt nur für diesen Monat. Willst du die Einnahme generell anpassen,
@@ -1096,7 +1110,7 @@
                                             </div>
                                             <div x-show="editing" x-cloak class="flex items-center justify-end gap-2">
                                                 <button type="submit" form="{{ $incomeEditId }}" class="{{ $editActionPrimary }}">OK</button>
-                                                <button type="button" class="{{ $editActionGhost }}" @click="editing = false; description = originalDescription; amount = originalAmount; amountDisplay = originalAmountDisplay;">X</button>
+                                                <button type="button" class="{{ $editActionGhost }}" @click="editing = false; description = originalDescription; amount = originalAmount; amountDisplay = originalAmountDisplay; accountId = originalAccountId;">X</button>
                                                 <form method="POST" action="{{ route('entries.destroy', $income) }}" onsubmit="return confirm('Eintrag wirklich löschen?');">
                                                     @csrf
                                                     @method('DELETE')
@@ -1152,9 +1166,12 @@
                                     description: {{ $json($income->description) }},
                                     amount: {{ $json($incomeAmountInput) }},
                                     amountDisplay: {{ $json($incomeAmountDisplay) }},
+                                    accountId: {{ $json((string) ($income->account_id ?? '')) }},
                                     originalDescription: {{ $json($income->description) }},
                                     originalAmount: {{ $json($incomeAmountInput) }},
                                     originalAmountDisplay: {{ $json($incomeAmountDisplay) }},
+                                    originalAccountId: {{ $json((string) ($income->account_id ?? '')) }},
+                                    canSwitchForecastAccount: {{ in_array($income->account?->type, ['forecast', 'clearing'], true) ? 'true' : 'false' }},
                                     paymentAmount: {{ $json($income->open_amount) }},
                                     syncAmount() {
                                         this.amount = (this.amountDisplay || '').toString().replace(/'/g, '').replace(',', '.');
@@ -1179,7 +1196,7 @@
                                         </form>
                                         <input type="hidden" name="entry_date" form="{{ $incomeEditId }}" value="{{ $income->entry_date->format('Y-m-d') }}">
                                         <input type="hidden" name="status" form="{{ $incomeEditId }}" value="{{ $income->status }}">
-                                        <input type="hidden" name="account_id" form="{{ $incomeEditId }}" value="{{ $income->account_id }}">
+                                        <input type="hidden" name="account_id" form="{{ $incomeEditId }}" x-model="accountId" :disabled="canSwitchForecastAccount">
                                         <input type="hidden" name="amount" form="{{ $incomeEditId }}" x-model="amount">
                                         <div x-show="!editing" class="flex items-start gap-1">
                                             <button type="button" class="inline-flex items-center accent-icon hover:opacity-80" title="Bearbeiten" aria-label="Bearbeiten" @click="editing = true; payOpen = false; $nextTick(() => $refs.description.focus())">
@@ -1189,6 +1206,13 @@
                                             @include('months.partials.carryover-badge', ['entry' => $income])
                                         </div>
                                         <input x-show="editing" x-cloak x-ref="description" type="text" name="description" form="{{ $incomeEditId }}" x-model="description" class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:border-[var(--accent)] focus:ring-[var(--accent)]" @keydown.enter.stop.prevent="$el.form.submit()">
+                                        <div x-show="editing && canSwitchForecastAccount" x-cloak class="mt-1">
+                                            <select name="account_id" form="{{ $incomeEditId }}" x-model="accountId" :disabled="!editing || !canSwitchForecastAccount" class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:border-[var(--accent)] focus:ring-[var(--accent)]">
+                                                @foreach ($forecastAccounts as $account)
+                                                    <option value="{{ $account->id }}">{{ $account->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
                                         @if ($income->recurringTemplate)
                                             <div x-show="editing" x-cloak class="mt-1 text-[11px] text-gray-500">
                                                 Änderung gilt nur für diesen Monat. Willst du die Einnahme generell anpassen,
@@ -1230,7 +1254,7 @@
                                                 </div>
                                                 <div x-show="editing" x-cloak class="flex items-center justify-end gap-2">
                                                     <button type="submit" form="{{ $incomeEditId }}" class="{{ $editActionPrimary }}">OK</button>
-                                                    <button type="button" class="{{ $editActionGhost }}" @click="editing = false; description = originalDescription; amount = originalAmount; amountDisplay = originalAmountDisplay;">X</button>
+                                                    <button type="button" class="{{ $editActionGhost }}" @click="editing = false; description = originalDescription; amount = originalAmount; amountDisplay = originalAmountDisplay; accountId = originalAccountId;">X</button>
                                                     <form method="POST" action="{{ route('entries.destroy', $income) }}" onsubmit="return confirm('Eintrag wirklich löschen?');">
                                                         @csrf
                                                         @method('DELETE')

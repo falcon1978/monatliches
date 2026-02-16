@@ -60,7 +60,13 @@ class EntryController extends Controller
         $entry->update($data);
         $entry->refresh()->load(['account', 'relatedTransfersOut']);
 
-        if ($entry->type === 'income' && $entry->account?->type === 'forecast') {
+        if (
+            $entry->type === 'income'
+            && (
+                $entry->income_source === 'expected'
+                || in_array($entry->account?->type, ['forecast', 'clearing'], true)
+            )
+        ) {
             $openAmount = $entry->open_amount;
             $calculatedStatus = $openAmount <= 0
                 ? 'paid'

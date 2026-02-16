@@ -44,14 +44,14 @@ class AccountController extends Controller
                         });
                 })
                 ->whereHas('account', static function ($query) {
-                    $query->where('type', 'forecast');
+                    $query->whereIn('type', ['forecast', 'clearing']);
                 })
                 ->with('relatedTransfersOut')
                 ->get()
                 ->groupBy('account_id')
                 ->map(static fn ($entries) => round($entries->sum(static fn (Entry $entry) => $entry->open_amount), 2));
 
-            $balanceAccounts = $accounts->whereIn('type', ['ist', 'clearing']);
+            $balanceAccounts = $accounts->where('type', 'ist');
             $balanceMeta = $balanceService->balanceMetaForMonth($currentMonth, $balanceAccounts);
             $accountBalances = collect($balanceMeta)->mapWithKeys(static function ($meta, $accountId) {
                 return [$accountId => $meta['effective']];
@@ -87,7 +87,7 @@ class AccountController extends Controller
         ]);
 
         $initialBalance = $request->input('initial_balance');
-        if ($initialBalance !== null && in_array($account->type, ['ist', 'clearing'], true)) {
+        if ($initialBalance !== null && $account->type === 'ist') {
             $currentMonth = $this->resolveCurrentMonthForUser($request->user());
             if ($currentMonth) {
                 AccountBalance::updateOrCreate(

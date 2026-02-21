@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.1.5 - 2026-02-21
+- Wiederkehrende Einnahmen: Nach Verschieben auf Forecast/Verrechnung koennen sie mit "Wiederkehrend" wieder in den recurring-Bereich zurueckgesetzt werden.
+- Wiederkehrende Einnahmen: Beim Zuruecksetzen ignoriert die Logik bewusst die Dropdown-Kontoauswahl.
+
 ## v2.1.4 - 2026-02-21
 - Wiederkehrende Einnahmen: Monats-Override kann jetzt auch auf Forecast-/Verrechnungskonten umgestellt werden (Dropdown im Monats-Edit).
 

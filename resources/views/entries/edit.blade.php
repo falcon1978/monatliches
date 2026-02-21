@@ -61,6 +61,7 @@
 
                         @php
                             $showAccountSelect = $entry->type !== 'income'
+                                || $entry->recurring_template_id !== null
                                 || $entry->income_source === 'expected'
                                 || ($entry->account && ! in_array($entry->account->type, ['forecast', 'clearing'], true));
                         @endphp

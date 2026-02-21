@@ -15,14 +15,19 @@ class UpdateEntryRequest extends FormRequest
     public function rules(): array
     {
         $entry = $this->route('entry');
+        $setRecurring = $this->boolean('set_recurring');
+        $isRecurringIncome = $entry && $entry->type === 'income' && $entry->recurring_template_id !== null;
         $statusOptions = $entry && $entry->type === 'income'
             ? ['open', 'partial', 'paid']
             : ['open', 'paid'];
-        $requiresAccount = ! $entry || $entry->type !== 'income' || $entry->income_source === 'expected';
+        $requiresAccount = ! $entry
+            || $entry->type !== 'income'
+            || $entry->income_source === 'expected'
+            || ($isRecurringIncome && ! $setRecurring);
         $accountRule = Rule::exists('accounts', 'id')
             ->where(fn ($query) => $query->where('user_id', $this->user()->id));
 
-        if ($entry && $entry->type === 'income' && $entry->income_source === 'expected') {
+        if ($entry && $entry->type === 'income' && $entry->income_source === 'expected' && ! $setRecurring) {
             $accountRule = Rule::exists('accounts', 'id')
                 ->where(fn ($query) => $query
                     ->where('user_id', $this->user()->id)
@@ -45,6 +50,7 @@ class UpdateEntryRequest extends FormRequest
             ],
             'status' => ['required', Rule::in($statusOptions)],
             'description' => ['required', 'string', 'max:255'],
+            'set_recurring' => ['nullable', 'boolean'],
         ];
     }
 }

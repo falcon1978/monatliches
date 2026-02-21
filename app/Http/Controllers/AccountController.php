@@ -36,11 +36,14 @@ class AccountController extends Controller
                 ->where('month_id', $currentMonth->id)
                 ->where('type', 'income')
                 ->whereIn('status', ['open', 'partial'])
-                ->whereNull('recurring_template_id')
                 ->where(function ($query) {
                     $query->where('income_source', 'expected')
                         ->orWhere(function ($query) {
-                            $query->whereNull('income_source');
+                            $query->whereNull('income_source')
+                                ->whereNull('recurring_template_id')
+                                ->whereHas('account', static function ($query) {
+                                    $query->whereIn('type', ['forecast', 'clearing']);
+                                });
                         });
                 })
                 ->whereHas('account', static function ($query) {

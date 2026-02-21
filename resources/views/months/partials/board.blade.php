@@ -50,24 +50,27 @@
         ->where('type', 'income')
         ->whereIn('status', ['open', 'partial'])
         ->values();
-    $recurringIncomes = $incomes->whereNotNull('recurring_template_id')->values();
+    $resolveIncomeSource = static function ($entry): string {
+        if ($entry->income_source !== null) {
+            return $entry->income_source;
+        }
+
+        if ($entry->recurring_template_id) {
+            return 'manual';
+        }
+
+        return in_array($entry->account?->type, ['forecast', 'clearing'], true) ? 'expected' : 'manual';
+    };
+    $recurringIncomes = $incomes
+        ->whereNotNull('recurring_template_id')
+        ->filter(fn ($entry) => $resolveIncomeSource($entry) === 'manual')
+        ->values();
     $manualIncomes = $incomes
         ->whereNull('recurring_template_id')
-        ->filter(function ($entry) {
-            $source = $entry->income_source
-                ?? (in_array($entry->account?->type, ['forecast', 'clearing'], true) ? 'expected' : 'manual');
-
-            return $source === 'manual';
-        })
+        ->filter(fn ($entry) => $resolveIncomeSource($entry) === 'manual')
         ->values();
     $customerIncomes = $incomes
-        ->whereNull('recurring_template_id')
-        ->filter(function ($entry) {
-            $source = $entry->income_source
-                ?? (in_array($entry->account?->type, ['forecast', 'clearing'], true) ? 'expected' : 'manual');
-
-            return $source === 'expected' && in_array($entry->status, ['open', 'partial'], true);
-        })
+        ->filter(fn ($entry) => $resolveIncomeSource($entry) === 'expected' && in_array($entry->status, ['open', 'partial'], true))
         ->values();
     $customerIncomeSum = $customerIncomes->sum(fn ($entry) => $entry->open_amount);
     $recurringIncomeSum = $recurringIncomes->sum(fn ($entry) => $entry->open_amount);
@@ -1172,6 +1175,7 @@
                                 <tr x-data="{
                                     editing: false,
                                     payOpen: false,
+                                    setRecurring: '0',
                                     description: {{ $json($income->description) }},
                                     amount: {{ $json($incomeAmountInput) }},
                                     amountDisplay: {{ $json($incomeAmountDisplay) }},
@@ -1205,6 +1209,7 @@
                                         </form>
                                         <input type="hidden" name="entry_date" form="{{ $incomeEditId }}" value="{{ $income->entry_date->format('Y-m-d') }}">
                                         <input type="hidden" name="status" form="{{ $incomeEditId }}" value="{{ $income->status }}">
+                                        <input type="hidden" name="set_recurring" form="{{ $incomeEditId }}" x-model="setRecurring">
                                         <input type="hidden" name="account_id" form="{{ $incomeEditId }}" x-model="accountId" :disabled="canSwitchForecastAccount">
                                         <input type="hidden" name="amount" form="{{ $incomeEditId }}" x-model="amount">
                                         <div x-show="!editing" class="flex items-start gap-1">
@@ -1262,8 +1267,11 @@
                                                     </button>
                                                 </div>
                                                 <div x-show="editing" x-cloak class="flex items-center justify-end gap-2">
-                                                    <button type="submit" form="{{ $incomeEditId }}" class="{{ $editActionPrimary }}">OK</button>
-                                                    <button type="button" class="{{ $editActionGhost }}" @click="editing = false; description = originalDescription; amount = originalAmount; amountDisplay = originalAmountDisplay; accountId = originalAccountId;">X</button>
+                                                    <button type="submit" form="{{ $incomeEditId }}" class="{{ $editActionPrimary }}" @click="setRecurring = '0'">OK</button>
+                                                    @if ($income->recurringTemplate)
+                                                        <button type="submit" form="{{ $incomeEditId }}" class="{{ $editActionGhost }}" @click="setRecurring = '1'">Wiederkehrend</button>
+                                                    @endif
+                                                    <button type="button" class="{{ $editActionGhost }}" @click="editing = false; setRecurring = '0'; description = originalDescription; amount = originalAmount; amountDisplay = originalAmountDisplay; accountId = originalAccountId;">X</button>
                                                     <form method="POST" action="{{ route('entries.destroy', $income) }}" onsubmit="return confirm('Eintrag wirklich löschen?');">
                                                         @csrf
                                                         @method('DELETE')

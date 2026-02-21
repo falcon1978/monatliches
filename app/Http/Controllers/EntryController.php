@@ -32,6 +32,29 @@ class EntryController extends Controller
         $originalAmount = (float) $entry->amount;
 
         $data = $request->validated();
+        $resetRecurringSource = $entry->type === 'income'
+            && $entry->recurring_template_id !== null
+            && $request->boolean('set_recurring');
+        unset($data['set_recurring']);
+
+        if ($resetRecurringSource) {
+            // "Wiederkehrend" should only reset the source flag; account selection is ignored.
+            unset($data['account_id']);
+            $data['income_source'] = 'manual';
+        }
+
+        if (
+            $entry->type === 'income'
+            && array_key_exists('account_id', $data)
+            && $data['account_id']
+        ) {
+            $selectedAccount = Account::forUser($request->user())->find($data['account_id']);
+            if ($selectedAccount) {
+                $data['income_source'] = in_array($selectedAccount->type, ['forecast', 'clearing'], true)
+                    ? 'expected'
+                    : 'manual';
+            }
+        }
 
         if ($entry->type === 'expense') {
             $dueDate = $data['due_date'] ?? $entry->due_date?->toDateString() ?? $entry->entry_date->toDateString();

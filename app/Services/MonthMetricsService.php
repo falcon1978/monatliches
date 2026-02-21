@@ -113,11 +113,11 @@ class MonthMetricsService
             ->where('type', 'income')
             ->where('direction', 'in')
             ->whereIn('status', ['open', 'partial'])
-            ->whereNull('recurring_template_id')
             ->where(function ($query) {
                 $query->where('income_source', 'expected')
                     ->orWhere(function ($query) {
                         $query->whereNull('income_source')
+                            ->whereNull('recurring_template_id')
                             ->whereHas('account', static function ($query) {
                                 $query->whereIn('type', ['forecast', 'clearing']);
                             });
@@ -141,12 +141,13 @@ class MonthMetricsService
             ->whereIn('status', ['open', 'partial'])
             ->where(function ($query) {
                 $query->where('income_source', 'manual')
-                    ->orWhereNotNull('recurring_template_id')
                     ->orWhere(function ($query) {
                         $query->whereNull('income_source')
-                            ->whereNull('recurring_template_id')
-                            ->whereHas('account', static function ($query) {
-                                $query->whereNotIn('type', ['forecast', 'clearing']);
+                            ->where(function ($query) {
+                                $query->whereNotNull('recurring_template_id')
+                                    ->orWhereHas('account', static function ($query) {
+                                        $query->whereNotIn('type', ['forecast', 'clearing']);
+                                    });
                             });
                     });
             })

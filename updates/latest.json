@@ -1,7 +1,7 @@
 {
-  "version": "2.1.3",
-  "released_at": "2026-02-16",
-  "download_url": "https://github.com/falcon1978/monatliches/releases/download/2.1.3/monatliches-dist-v2.1.3.zip",
-  "sha256": "afcb9adfadee162c62eed3c4a66fb6da951a3b586d9ff81ba8cb126694534de5",
-  "changelog": "Forecast-Einnahmen können beim Bearbeiten das Forecast-/Verrechnungskonto wechseln; Verrechnungskonten nicht mehr als Ist-Kontostand."
+  "version": "2.1.4",
+  "released_at": "2026-02-21",
+  "download_url": "https://github.com/falcon1978/monatliches/releases/download/2.1.4/monatliches-dist-v2.1.4.zip",
+  "sha256": "4471a09d46fb2dc9f16bd0ddee77073733259df1e991a8cde1276720bbe21b0c",
+  "changelog": "Wiederkehrende Einnahmen im Monat können per Edit-Dropdown auf Forecast-/Verrechnungskonten umgestellt werden."
 }

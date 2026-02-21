@@ -1,5 +1,8 @@
 # Changelog
 
+## v2.1.4 - 2026-02-21
+- Wiederkehrende Einnahmen: Monats-Override kann jetzt auch auf Forecast-/Verrechnungskonten umgestellt werden (Dropdown im Monats-Edit).
+
 ## v2.1.3 - 2026-02-16
 - Einnahmen: Forecast-Einträge können in der Monatsansicht beim Bearbeiten auf ein anderes Forecast-/Verrechnungskonto verschoben werden.
 - Monatsansicht: Plus-Icon für neue Einnahmen nach oben zum Bereichs-Header verschoben (konsistent zu Rechnungen).

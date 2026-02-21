@@ -870,6 +870,12 @@
                             $incomeEditId = 'income-edit-' . $income->id;
                             $incomeAmountInput = number_format((float) $income->amount, 2, '.', '');
                             $incomeAmountDisplay = number_format((float) $income->amount, 2, '.', "'");
+                            $currentIsForecastFamily = in_array($income->account?->type, ['forecast', 'clearing'], true);
+                            $canSwitchForecastAccount = $currentIsForecastFamily
+                                || ($income->recurring_template_id !== null && $forecastAccounts->isNotEmpty());
+                            $showCurrentAccountOption = $canSwitchForecastAccount
+                                && ! $currentIsForecastFamily
+                                && $income->account;
                         @endphp
                         <tr x-data="{
                             editing: false,
@@ -882,7 +888,7 @@
                             originalAmount: {{ $json($incomeAmountInput) }},
                             originalAmountDisplay: {{ $json($incomeAmountDisplay) }},
                             originalAccountId: {{ $json((string) ($income->account_id ?? '')) }},
-                            canSwitchForecastAccount: {{ in_array($income->account?->type, ['forecast', 'clearing'], true) ? 'true' : 'false' }},
+                            canSwitchForecastAccount: {{ $canSwitchForecastAccount ? 'true' : 'false' }},
                             paymentAmount: {{ $json($openAmount) }},
                             syncAmount() {
                                 this.amount = (this.amountDisplay || '').toString().replace(/'/g, '').replace(',', '.');
@@ -919,6 +925,9 @@
                                 <input x-show="editing" x-cloak x-ref="description" type="text" name="description" form="{{ $incomeEditId }}" x-model="description" class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:border-[var(--accent)] focus:ring-[var(--accent)]" @keydown.enter.stop.prevent="$el.form.submit()">
                                 <div x-show="editing && canSwitchForecastAccount" x-cloak class="mt-1">
                                     <select name="account_id" form="{{ $incomeEditId }}" x-model="accountId" :disabled="!editing || !canSwitchForecastAccount" class="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:border-[var(--accent)] focus:ring-[var(--accent)]">
+                                        @if ($showCurrentAccountOption)
+                                            <option value="{{ $income->account_id }}">{{ $income->account->name }} (aktuell)</option>
+                                        @endif
                                         @foreach ($forecastAccounts as $account)
                                             <option value="{{ $account->id }}">{{ $account->name }}</option>
                                         @endforeach

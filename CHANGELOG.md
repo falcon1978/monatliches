@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.1.6 - 2026-02-24
+- Verrechnung/Forecast: Negative Einnahmen bleiben nach Bearbeitung korrekt offen und verschwinden nicht mehr aus der Monatsansicht.
+- Zahlungseingang: Auch negative offene Einnahmen koennen jetzt auf ein Ist-Konto verbucht werden (Teil- und Vollverbuchung).
+- Mobile: Betragseingabe fuer Einnahmen akzeptiert negatives Vorzeichen robuster.
+
 ## v2.1.5 - 2026-02-21
 - Wiederkehrende Einnahmen: Nach Verschieben auf Forecast/Verrechnung koennen sie mit "Wiederkehrend" wieder in den recurring-Bereich zurueckgesetzt werden.
 - Wiederkehrende Einnahmen: Beim Zuruecksetzen ignoriert die Logik bewusst die Dropdown-Kontoauswahl.

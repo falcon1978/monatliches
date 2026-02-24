@@ -103,4 +103,107 @@ class BudgetTest extends TestCase
         $this->assertSame(60.0, $income->open_amount);
         $this->assertSame('partial', $income->status);
     }
+
+    public function test_negative_expected_income_stays_open_after_update(): void
+    {
+        $user = User::factory()->create();
+        $month = Month::create([
+            'user_id' => $user->id,
+            'name' => 'Mai 2026',
+            'date_from' => '2026-05-01',
+            'date_to' => '2026-05-31',
+            'daily_living_cost' => 35,
+        ]);
+
+        $clearingAccount = $user->accounts()->create([
+            'name' => 'Verrechnung Test',
+            'type' => 'clearing',
+        ]);
+
+        $income = Entry::create([
+            'user_id' => $user->id,
+            'month_id' => $month->id,
+            'entry_date' => now()->toDateString(),
+            'type' => 'income',
+            'income_source' => 'expected',
+            'direction' => 'in',
+            'amount' => 120,
+            'account_id' => $clearingAccount->id,
+            'status' => 'open',
+            'description' => 'Verrechnungsposten',
+        ]);
+
+        $this->actingAs($user)
+            ->put(route('entries.update', $income), [
+                'entry_date' => now()->toDateString(),
+                'description' => 'Verrechnungsposten',
+                'amount' => '-50.00',
+                'status' => 'open',
+                'account_id' => $clearingAccount->id,
+            ])
+            ->assertRedirect(route('months.show', $month));
+
+        $income->refresh()->load('relatedTransfersOut');
+
+        $this->assertSame(-50.0, (float) $income->amount);
+        $this->assertSame(-50.0, $income->open_amount);
+        $this->assertSame('open', $income->status);
+    }
+
+    public function test_negative_expected_income_payment_is_booked_with_target_account(): void
+    {
+        $user = User::factory()->create();
+        $month = Month::create([
+            'user_id' => $user->id,
+            'name' => 'Jun 2026',
+            'date_from' => '2026-06-01',
+            'date_to' => '2026-06-30',
+            'daily_living_cost' => 35,
+        ]);
+
+        $clearingAccount = $user->accounts()->create([
+            'name' => 'Verrechnung Test',
+            'type' => 'clearing',
+        ]);
+        $bankAccount = $user->accounts()->where('type', 'ist')->firstOrFail();
+
+        $income = Entry::create([
+            'user_id' => $user->id,
+            'month_id' => $month->id,
+            'entry_date' => now()->toDateString(),
+            'type' => 'income',
+            'income_source' => 'expected',
+            'direction' => 'in',
+            'amount' => -100,
+            'account_id' => $clearingAccount->id,
+            'status' => 'open',
+            'description' => 'Negativer Verrechnungsposten',
+        ]);
+
+        $this->actingAs($user)
+            ->post(route('months.income-payments.store', $month), [
+                'entry_id' => $income->id,
+                'amount' => 40,
+                'target_account_id' => $bankAccount->id,
+            ])
+            ->assertRedirect();
+
+        $income->refresh()->load('relatedTransfersOut');
+
+        $this->assertSame(-60.0, $income->open_amount);
+        $this->assertSame('partial', $income->status);
+
+        $this->actingAs($user)
+            ->post(route('months.income-payments.store', $month), [
+                'entry_id' => $income->id,
+                'amount' => 60,
+                'target_account_id' => $bankAccount->id,
+            ])
+            ->assertRedirect();
+
+        $income->refresh()->load('relatedTransfersOut');
+
+        $this->assertSame(0.0, $income->open_amount);
+        $this->assertSame('paid', $income->status);
+    }
 }

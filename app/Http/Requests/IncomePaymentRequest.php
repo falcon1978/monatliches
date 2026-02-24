@@ -19,7 +19,7 @@ class IncomePaymentRequest extends FormRequest
                 'required',
                 Rule::exists('entries', 'id')->where(fn ($query) => $query->where('user_id', $this->user()->id)),
             ],
-            'amount' => ['required', 'numeric', 'min:0.01'],
+            'amount' => ['required', 'numeric'],
             'target_account_id' => [
                 'required',
                 Rule::exists('accounts', 'id')->where(fn ($query) => $query

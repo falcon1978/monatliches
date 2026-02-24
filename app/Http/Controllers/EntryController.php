@@ -90,10 +90,7 @@ class EntryController extends Controller
                 || in_array($entry->account?->type, ['forecast', 'clearing'], true)
             )
         ) {
-            $openAmount = $entry->open_amount;
-            $calculatedStatus = $openAmount <= 0
-                ? 'paid'
-                : ($openAmount < (float) $entry->amount ? 'partial' : 'open');
+            $calculatedStatus = $this->calculateIncomeStatus($entry);
 
             if ($entry->status !== $calculatedStatus) {
                 $entry->status = $calculatedStatus;
@@ -258,11 +255,23 @@ class EntryController extends Controller
             return;
         }
 
-        $openAmount = $income->open_amount;
-        $income->status = $openAmount <= 0
-            ? 'paid'
-            : ($openAmount < (float) $income->amount ? 'partial' : 'open');
+        $income->status = $this->calculateIncomeStatus($income);
         $income->save();
+    }
+
+    private function calculateIncomeStatus(Entry $income): string
+    {
+        $openAmount = (float) $income->open_amount;
+        if (abs($openAmount) <= 0.00001) {
+            return 'paid';
+        }
+
+        $amount = abs((float) $income->amount);
+        if ($amount > 0.00001 && abs($openAmount) < $amount) {
+            return 'partial';
+        }
+
+        return 'open';
     }
 
     private function adjustTemplateRemaining(Entry $entry, float $delta): void

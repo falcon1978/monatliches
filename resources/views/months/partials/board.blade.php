@@ -235,40 +235,42 @@
                                 <div class="text-xs uppercase tracking-wide text-gray-500">{{ $account->name }}</div>
                                 <x-info-tooltip text="Kontostand hier jederzeit anpassen – ideal, wenn du kleine Ausgaben nicht einzeln erfassen willst." />
                             </div>
-                            <form method="POST" action="{{ route('months.balances.update', [$month, $account]) }}" class="mt-2 flex items-center gap-2" @submit="if (!prepareSubmit()) { $event.preventDefault() }">
+                            <form method="POST" action="{{ route('months.balances.update', [$month, $account]) }}" class="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center" @submit="if (!prepareSubmit()) { $event.preventDefault() }">
                                 @csrf
                                 @method('PATCH')
                                 <input type="hidden" name="amount" x-model="value">
-                                <div class="flex-1">
+                                <div class="w-full flex-1">
                                     <div x-show="!editing" class="flex items-baseline justify-end gap-2">
                                         <span class="text-[10px] uppercase tracking-[0.2em] text-gray-400">CHF</span>
                                         <span class="text-lg font-semibold tabular-nums {{ $balanceClass }}">{{ $fmt($balance) }}</span>
                                     </div>
                                     <div x-show="editing" x-cloak class="space-y-2 rounded-xl border border-[var(--border)] bg-white/90 dark:bg-slate-900/80 px-3 py-2 shadow-inner">
-                                        <div class="flex items-center justify-between gap-2">
-                                            <div class="inline-flex items-center rounded-full bg-slate-200/80 dark:bg-slate-800/90 p-0.5 shadow-inner">
+                                        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                            <div class="grid w-full grid-cols-2 rounded-full bg-slate-200/80 p-0.5 shadow-inner dark:bg-slate-800/90 sm:inline-flex sm:w-auto sm:items-center">
                                                 <button
                                                     type="button"
                                                     @click="setEditMode('delta')"
                                                     :aria-pressed="editMode === 'delta' ? 'true' : 'false'"
-                                                    class="h-7 rounded-full px-3 text-[11px] font-semibold uppercase tracking-[0.15em] transition-all duration-150"
+                                                    class="h-8 w-full rounded-full px-3 text-[11px] font-semibold uppercase tracking-[0.15em] transition-all duration-150 sm:h-7"
                                                     :class="editMode === 'delta' ? 'bg-[var(--accent)] text-white shadow-sm ring-1 ring-[var(--accent)]/40' : 'text-gray-600 dark:text-slate-300'"
                                                 >Rechnen</button>
                                                 <button
                                                     type="button"
                                                     @click="setEditMode('absolute')"
                                                     :aria-pressed="editMode === 'absolute' ? 'true' : 'false'"
-                                                    class="h-7 rounded-full px-3 text-[11px] font-semibold uppercase tracking-[0.15em] transition-all duration-150"
+                                                    class="h-8 w-full rounded-full px-3 text-[11px] font-semibold uppercase tracking-[0.15em] transition-all duration-150 sm:h-7"
                                                     :class="editMode === 'absolute' ? 'bg-[var(--accent)] text-white shadow-sm ring-1 ring-[var(--accent)]/40' : 'text-gray-600 dark:text-slate-300'"
                                                 >Direkt</button>
                                             </div>
-                                            <div class="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500 dark:text-slate-400" x-text="editMode === 'delta' ? 'Modus Rechnen' : 'Modus Direkt'"></div>
+                                            <div class="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500 dark:text-slate-400 sm:text-right" x-text="editMode === 'delta' ? 'Modus Rechnen' : 'Modus Direkt'"></div>
                                         </div>
 
                                         <div x-show="editMode === 'delta'" x-cloak class="space-y-1">
                                             <div class="flex items-center justify-end gap-2">
                                                 <span class="text-[10px] uppercase tracking-[0.2em] text-gray-400">CHF</span>
                                                 <span class="text-base font-semibold tabular-nums text-gray-900 dark:text-slate-100" x-text="baseDisplay"></span>
+                                            </div>
+                                            <div class="flex items-center justify-end gap-2">
                                                 <div class="inline-flex items-center rounded-full bg-slate-200/80 dark:bg-slate-800/90 p-0.5 shadow-inner">
                                                     <button
                                                         type="button"
@@ -294,7 +296,7 @@
                                                     x-model="delta"
                                                     placeholder="0.00"
                                                     :required="editMode === 'delta'"
-                                                    class="w-24 bg-transparent rounded-md border border-gray-300 px-2 py-1 text-sm font-semibold text-right tabular-nums text-gray-900 dark:text-slate-100 focus:border-[var(--accent)] focus:ring-[var(--accent)]"
+                                                    class="w-full max-w-[9rem] rounded-md border border-gray-300 bg-transparent px-2 py-1 text-sm font-semibold tabular-nums text-right text-gray-900 focus:border-[var(--accent)] focus:ring-[var(--accent)] dark:text-slate-100 sm:w-24"
                                                     @input="sync()"
                                                     @keydown.enter.stop.prevent="$el.form.requestSubmit()"
                                                     @keydown.escape="cancel()"
@@ -311,26 +313,26 @@
                                                     inputmode="decimal"
                                                     x-model="absolute"
                                                     :required="editMode === 'absolute'"
-                                                    class="w-36 bg-transparent rounded-md border border-gray-300 px-2 py-1 text-sm font-semibold text-right tabular-nums text-gray-900 dark:text-slate-100 focus:border-[var(--accent)] focus:ring-[var(--accent)]"
+                                                    class="w-full rounded-md border border-gray-300 bg-transparent px-2 py-1 text-sm font-semibold tabular-nums text-right text-gray-900 focus:border-[var(--accent)] focus:ring-[var(--accent)] dark:text-slate-100 sm:w-36"
                                                     @input="sync()"
                                                     @keydown.enter.stop.prevent="$el.form.requestSubmit()"
                                                     @keydown.escape="cancel()"
                                                 >
                                             </div>
-                                            <div class="text-[10px] text-right font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">Direkt überschreiben</div>
+                                            <div class="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)] sm:text-right">Direkt überschreiben</div>
                                         </div>
 
-                                        <div class="rounded-lg bg-gradient-to-r from-gray-50/90 to-white/90 dark:from-slate-900/70 dark:to-slate-800/60 px-2 py-1 text-[11px] text-right text-gray-500 dark:text-slate-400">
+                                        <div class="rounded-lg bg-gradient-to-r from-gray-50/90 to-white/90 px-2 py-1 text-[11px] text-gray-500 dark:from-slate-900/70 dark:to-slate-800/60 dark:text-slate-400 sm:text-right">
                                             <span class="uppercase tracking-[0.2em] text-gray-400">Ergebnis</span>
                                             <span
-                                                class="ml-1 tabular-nums font-semibold"
+                                                class="mt-1 block tabular-nums font-semibold sm:ml-1 sm:mt-0 sm:inline"
                                                 :class="parseFloat(value) < 0 ? 'text-red-700 dark:text-red-200' : 'text-emerald-700 dark:text-emerald-200'"
                                                 x-text="editMode === 'delta' ? 'CHF ' + baseDisplay + ' ' + operator + ' ' + deltaDisplay() + ' = ' + resultDisplay() : 'CHF ' + baseDisplay + ' -> ' + resultDisplay()"
                                             ></span>
                                         </div>
                                     </div>
                                 </div>
-                                <button x-show="editing" x-cloak type="submit" class="touch-target px-3 py-2 bg-[var(--accent)] text-white rounded-xl text-xs font-semibold shadow-sm">OK</button>
+                                <button x-show="editing" x-cloak type="submit" class="touch-target w-full rounded-xl bg-[var(--accent)] px-3 py-2 text-xs font-semibold text-white shadow-sm sm:w-auto">OK</button>
                             </form>
                         </div>
                     @endforeach
@@ -971,7 +973,7 @@
                                                 <button type="submit" class="text-xs text-[var(--accent)] underline" title="Nächster Monat">→</button>
                                             </form>
                                             <span class="font-semibold">{{ $fmt($displayAmount) }}</span>
-                                            @if ($openAmount > 0)
+                                            @if (abs($openAmount) > 0.00001)
                                                 <button type="button" class="inline-flex items-center text-[var(--accent)]" title="Zahlung eingegangen" aria-label="Zahlung eingegangen" @click="payOpen = !payOpen">
                                                     <x-icon-check class="w-3 h-3" />
                                                 </button>
@@ -991,7 +993,7 @@
                                             <input type="text" name="amount_display" form="{{ $incomeEditId }}" x-model="amountDisplay" @input="syncAmount()" @blur="formatAmount()" class="w-24 border border-gray-300 rounded px-2 py-1 text-sm text-right tabular-nums focus:border-[var(--accent)] focus:ring-[var(--accent)]" @keydown.enter.stop.prevent="$el.form.submit()">
                                         </div>
                                     </div>
-                                    @if ($openAmount > 0)
+                                    @if (abs($openAmount) > 0.00001)
                                         <form x-show="payOpen && !editing" x-cloak @click.outside="payOpen = false" method="POST" action="{{ route('months.income-payments.store', $month) }}" class="mt-1 flex flex-wrap items-center justify-end gap-2 text-xs">
                                             @csrf
                                             <input type="hidden" name="entry_id" value="{{ $income->id }}">
@@ -1114,7 +1116,7 @@
                                                     <button type="submit" class="text-xs text-[var(--accent)] underline" title="Nächster Monat">→</button>
                                                 </form>
                                                 <span class="font-semibold">{{ $fmt($displayAmount) }}</span>
-                                                @if ($openAmount > 0)
+                                                @if (abs($openAmount) > 0.00001)
                                                     <button type="button" class="inline-flex items-center text-[var(--accent)]" title="Zahlung eingegangen" aria-label="Zahlung eingegangen" @click="payOpen = !payOpen">
                                                         <x-icon-check class="w-3 h-3" />
                                                     </button>
@@ -1134,7 +1136,7 @@
                                                 <input type="text" name="amount_display" form="{{ $incomeEditId }}" x-model="amountDisplay" @input="syncAmount()" @blur="formatAmount()" class="w-24 border border-gray-300 rounded px-2 py-1 text-sm text-right tabular-nums focus:border-[var(--accent)] focus:ring-[var(--accent)]" @keydown.enter.stop.prevent="$el.form.submit()">
                                             </div>
                                         </div>
-                                        @if ($openAmount > 0)
+                                        @if (abs($openAmount) > 0.00001)
                                             <form x-show="payOpen && !editing" x-cloak @click.outside="payOpen = false" method="POST" action="{{ route('months.income-payments.store', $month) }}" class="mt-1 flex flex-wrap items-center justify-end gap-2 text-xs">
                                                 @csrf
                                                 <input type="hidden" name="entry_id" value="{{ $income->id }}">
@@ -1169,6 +1171,7 @@
                         @foreach ($accountEntries as $income)
                                 @php
                                     $incomeEditId = 'income-edit-' . $income->id;
+                                    $openAmount = $income->open_amount;
                                     $incomeAmountInput = number_format((float) $income->amount, 2, '.', '');
                                     $incomeAmountDisplay = number_format((float) $income->amount, 2, '.', "'");
                                 @endphp
@@ -1185,7 +1188,7 @@
                                     originalAmountDisplay: {{ $json($incomeAmountDisplay) }},
                                     originalAccountId: {{ $json((string) ($income->account_id ?? '')) }},
                                     canSwitchForecastAccount: {{ in_array($income->account?->type, ['forecast', 'clearing'], true) ? 'true' : 'false' }},
-                                    paymentAmount: {{ $json($income->open_amount) }},
+                                    paymentAmount: {{ $json($openAmount) }},
                                     syncAmount() {
                                         this.amount = (this.amountDisplay || '').toString().replace(/'/g, '').replace(',', '.');
                                     },
@@ -1261,10 +1264,12 @@
                                                         @method('PATCH')
                                                         <button type="submit" class="text-xs text-[var(--accent)] underline" title="Nächster Monat">→</button>
                                                     </form>
-                                                    <span class="font-semibold">{{ $fmt($income->open_amount) }}</span>
-                                                    <button type="button" class="inline-flex items-center text-[var(--accent)]" title="Zahlung eingegangen" aria-label="Zahlung eingegangen" @click="payOpen = !payOpen">
-                                                        <x-icon-check class="w-3 h-3" />
-                                                    </button>
+                                                    <span class="font-semibold">{{ $fmt($openAmount) }}</span>
+                                                    @if (abs($openAmount) > 0.00001)
+                                                        <button type="button" class="inline-flex items-center text-[var(--accent)]" title="Zahlung eingegangen" aria-label="Zahlung eingegangen" @click="payOpen = !payOpen">
+                                                            <x-icon-check class="w-3 h-3" />
+                                                        </button>
+                                                    @endif
                                                 </div>
                                                 <div x-show="editing" x-cloak class="flex items-center justify-end gap-2">
                                                     <button type="submit" form="{{ $incomeEditId }}" class="{{ $editActionPrimary }}" @click="setRecurring = '0'">OK</button>
@@ -1283,17 +1288,19 @@
                                                     <input type="text" name="amount_display" form="{{ $incomeEditId }}" x-model="amountDisplay" @input="syncAmount()" @blur="formatAmount()" class="w-24 border border-gray-300 rounded px-2 py-1 text-sm text-right tabular-nums focus:border-[var(--accent)] focus:ring-[var(--accent)]" @keydown.enter.stop.prevent="$el.form.submit()">
                                                 </div>
                                             </div>
-                                            <form x-show="payOpen && !editing" x-cloak @click.outside="payOpen = false" method="POST" action="{{ route('months.income-payments.store', $month) }}" class="mt-1 flex flex-wrap items-center justify-end gap-2 text-xs">
-                                                @csrf
-                                                <input type="hidden" name="entry_id" value="{{ $income->id }}">
-                                                <input type="number" step="0.01" name="amount" x-model="paymentAmount" class="w-24 border border-gray-300 rounded px-2 py-1 text-sm focus:border-[var(--accent)] focus:ring-[var(--accent)]" required>
-                                                <select name="target_account_id" class="border border-gray-300 rounded px-2 py-1 text-sm focus:border-[var(--accent)] focus:ring-[var(--accent)]" required>
-                                                    @foreach ($istAccounts as $account)
-                                                        <option value="{{ $account->id }}">{{ $account->name }}</option>
-                                                    @endforeach
-                                                </select>
-                                                <button type="submit" class="px-2 py-1 bg-[var(--accent)] text-white rounded text-xs">OK</button>
-                                            </form>
+                                            @if (abs($openAmount) > 0.00001)
+                                                <form x-show="payOpen && !editing" x-cloak @click.outside="payOpen = false" method="POST" action="{{ route('months.income-payments.store', $month) }}" class="mt-1 flex flex-wrap items-center justify-end gap-2 text-xs">
+                                                    @csrf
+                                                    <input type="hidden" name="entry_id" value="{{ $income->id }}">
+                                                    <input type="number" step="0.01" name="amount" x-model="paymentAmount" class="w-24 border border-gray-300 rounded px-2 py-1 text-sm focus:border-[var(--accent)] focus:ring-[var(--accent)]" required>
+                                                    <select name="target_account_id" class="border border-gray-300 rounded px-2 py-1 text-sm focus:border-[var(--accent)] focus:ring-[var(--accent)]" required>
+                                                        @foreach ($istAccounts as $account)
+                                                            <option value="{{ $account->id }}">{{ $account->name }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                    <button type="submit" class="px-2 py-1 bg-[var(--accent)] text-white rounded text-xs">OK</button>
+                                                </form>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>
@@ -1727,7 +1734,7 @@
             </div>
             <div class="space-y-2">
                 <label class="text-[11px] uppercase tracking-[0.3em] text-gray-500">Betrag</label>
-                <input type="number" step="0.01" inputmode="decimal" name="amount" class="w-full rounded-xl border border-gray-300 bg-white/80 px-3 py-3 text-base text-right tabular-nums focus:border-[var(--accent)] focus:ring-[var(--accent)]" placeholder="0.00" required>
+                <input type="text" name="amount" class="w-full rounded-xl border border-gray-300 bg-white/80 px-3 py-3 text-base text-right tabular-nums focus:border-[var(--accent)] focus:ring-[var(--accent)]" placeholder="0.00" required>
             </div>
             <div class="space-y-2" x-show="source === 'expected'" x-cloak>
                 <label class="text-[11px] uppercase tracking-[0.3em] text-gray-500">Konto</label>

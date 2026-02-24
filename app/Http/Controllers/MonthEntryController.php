@@ -144,14 +144,20 @@ class MonthEntryController extends Controller
         }
         $useTransfers = $source === 'expected' || $income->relatedTransfersOut->isNotEmpty();
 
-        $openAmount = $income->open_amount;
+        $openAmount = (float) $income->open_amount;
         $amount = (float) $request->input('amount');
 
-        if ($amount <= 0) {
-            return back()->withErrors(['amount' => 'Betrag muss größer als 0 sein.']);
+        if (abs($amount) <= 0.00001) {
+            return back()->withErrors(['amount' => 'Betrag muss ungleich 0 sein.']);
         }
 
-        if ($amount > $openAmount) {
+        if ($openAmount < 0 && $amount > 0) {
+            $amount *= -1;
+        } elseif ($openAmount > 0 && $amount < 0) {
+            $amount = abs($amount);
+        }
+
+        if (abs($amount) - abs($openAmount) > 0.00001) {
             return back()->withErrors(['amount' => 'Betrag ist höher als der offene Betrag.']);
         }
 
@@ -177,14 +183,14 @@ class MonthEntryController extends Controller
             );
 
             $income->refresh()->load('relatedTransfersOut');
-            $income->status = $income->open_amount <= 0 ? 'paid' : 'partial';
+            $income->status = $this->calculateIncomeStatus($income);
             $income->save();
 
             if (! $wasPaid && $income->status === 'paid') {
                 $this->adjustTemplateRemaining($income, -1 * (float) $income->amount);
             }
         } else {
-            if ($amount < $openAmount) {
+            if (abs(abs($amount) - abs($openAmount)) > 0.00001) {
                 return back()->withErrors(['amount' => 'Für diese Einnahme sind nur Gesamtzahlungen erlaubt.']);
             }
 
@@ -260,6 +266,21 @@ class MonthEntryController extends Controller
         }
 
         return response()->json(['status' => 'ok']);
+    }
+
+    private function calculateIncomeStatus(Entry $income): string
+    {
+        $openAmount = (float) $income->open_amount;
+        if (abs($openAmount) <= 0.00001) {
+            return 'paid';
+        }
+
+        $amount = abs((float) $income->amount);
+        if ($amount > 0.00001 && abs($openAmount) < $amount) {
+            return 'partial';
+        }
+
+        return 'open';
     }
 
     private function adjustTemplateRemaining(Entry $entry, float $delta): void

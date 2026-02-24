@@ -48,7 +48,7 @@
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
             <div class="text-sm font-semibold tabular-nums text-gray-900 dark:text-slate-100">CHF {{ $fmt($displayAmount) }}</div>
-            @if ($openAmount > 0)
+            @if (abs($openAmount) > 0.00001)
                 <button type="button" class="touch-target inline-flex items-center justify-center rounded-full text-[var(--accent)]" aria-label="Zahlung eingegangen" title="Zahlung eingegangen" @click="sheet = 'payment'; paymentEntryId = {{ $income->id }}; paymentAmount = incomePaymentMap[{{ $income->id }}]">
                     <x-icon-check class="h-4 w-4" />
                 </button>

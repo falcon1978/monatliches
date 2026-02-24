@@ -1,7 +1,7 @@
 {
-  "version": "2.1.5",
-  "released_at": "2026-02-21",
-  "download_url": "https://github.com/falcon1978/monatliches/releases/download/2.1.5/monatliches-dist-v2.1.5.zip",
-  "sha256": "b4be78e6cf7e86d4c1e771a4af48c49079b5879bb36b48fb6b12a06a2b7e8f7f",
-  "changelog": "Wiederkehrende Einnahmen koennen im Monat sicher auf Forecast/Verrechnung umgestellt und per 'Wiederkehrend' wieder zurueckgesetzt werden."
+  "version": "2.1.6",
+  "released_at": "2026-02-24",
+  "download_url": "https://github.com/falcon1978/monatliches/releases/download/2.1.6/monatliches-dist-v2.1.6.zip",
+  "sha256": "5adf2c91b8512047d15b398fe17566fa1ba6781a4dde60c01052e3e0f9d9e9ff",
+  "changelog": "Verrechnung/Forecast: Negative Einnahmen bleiben offen, koennen auf Ist-Konten verbucht werden (auch mobil)."
 }

@@ -40,7 +40,11 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <x-input-label for="amount" value="Betrag" />
-                                <x-text-input id="amount" name="amount" type="number" step="0.01" class="mt-1 block w-full" value="{{ old('amount', $entry->amount) }}" required />
+                                @if ($entry->type === 'income')
+                                    <x-text-input id="amount" name="amount" type="text" class="mt-1 block w-full" value="{{ old('amount', $entry->amount) }}" required />
+                                @else
+                                    <x-text-input id="amount" name="amount" type="number" step="0.01" class="mt-1 block w-full" value="{{ old('amount', $entry->amount) }}" required />
+                                @endif
                                 <x-input-error :messages="$errors->get('amount')" class="mt-2" />
                             </div>
                             <div>

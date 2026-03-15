@@ -10,6 +10,7 @@ use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\InstallController;
 use App\Http\Controllers\MonthController;
 use App\Http\Controllers\MonthEntryController;
+use App\Http\Controllers\MonthInsightsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RecurringTemplateController;
 use Illuminate\Support\Facades\Route;
@@ -59,6 +60,8 @@ Route::middleware('installed')->group(function () {
             ->name('months.import-templates');
         Route::patch('months/{month}/balances/{account}', [AccountBalanceController::class, 'update'])
             ->name('months.balances.update');
+        Route::get('months/{month}/insights', MonthInsightsController::class)
+            ->name('months.insights');
 
         Route::get('months/{month}/entries', [MonthEntryController::class, 'index'])
             ->name('months.entries.index');

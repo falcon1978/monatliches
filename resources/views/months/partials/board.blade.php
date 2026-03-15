@@ -130,8 +130,58 @@
         incomePaymentMap: {{ $json($incomePaymentMap) }},
         payableEntryId: {{ $json($firstPayableId) }},
         payableActionMap: {{ $json($payableActionMap) }},
+        insightsUrl: {{ $json(route('months.insights', $month)) }},
+        insights: null,
+        insightsLoaded: false,
+        insightsLoading: false,
+        insightsError: '',
+        async loadInsights(force = false) {
+            this.insightsLoading = true;
+            this.insightsError = '';
+
+            const separator = this.insightsUrl.includes('?') ? '&' : '?';
+            const url = force ? this.insightsUrl + separator + 'refresh=1' : this.insightsUrl;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                });
+
+                if (! response.ok) {
+                    throw new Error('http-' + response.status);
+                }
+
+                const payload = await response.json();
+                if (! payload || typeof payload !== 'object') {
+                    throw new Error('invalid-json');
+                }
+
+                this.insights = payload;
+                this.insightsLoaded = true;
+            } catch (error) {
+                this.insights = null;
+                this.insightsError = 'Die Analyse konnte nicht geladen werden. Bitte versuche es erneut.';
+            } finally {
+                this.insightsLoading = false;
+            }
+        },
+        severityLabel(severity) {
+            if (severity === 'high') return 'Hoch';
+            if (severity === 'low') return 'Niedrig';
+            return 'Mittel';
+        },
+        severityClass(severity) {
+            if (severity === 'high') return 'border border-red-200 bg-red-50 text-red-700';
+            if (severity === 'low') return 'border border-emerald-200 bg-emerald-50 text-emerald-700';
+            return 'border border-amber-200 bg-amber-50 text-amber-700';
+        },
     }"
-    x-init="if (entriesOpen) { $nextTick(() => $refs.entriesSection?.scrollIntoView({ behavior: 'smooth', block: 'start' })) }"
+    x-init="if (entriesOpen) { $nextTick(() => $refs.entriesSection?.scrollIntoView({ behavior: 'smooth', block: 'start' })) } loadInsights()"
     x-on:open-quick-add.window="sheet = 'quick'"
 >
 
@@ -518,6 +568,101 @@
                 </form>
             @endcan
         </div>
+    </div>
+
+    <div class="rounded-xl border accent-box bg-white/80 dark:bg-slate-900/70 shadow-sm p-4 space-y-4">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+                <div class="text-xs uppercase tracking-[0.25em] text-gray-500">KI-Analyse</div>
+                <h3 class="mt-1 text-base font-semibold text-gray-900 dark:text-slate-100">Budget-Auswertung</h3>
+                <div class="text-xs text-gray-500">Kurz, konkret und ohne Fachjargon.</div>
+            </div>
+            <button
+                type="button"
+                class="touch-target inline-flex items-center rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-xs font-semibold text-gray-700 disabled:opacity-60 disabled:cursor-not-allowed dark:bg-slate-900 dark:text-slate-100"
+                @click="loadInsights(true)"
+                :disabled="insightsLoading"
+            >
+                <span x-show="!insightsLoading">Analyse aktualisieren</span>
+                <span x-show="insightsLoading" x-cloak>Wird geladen...</span>
+            </button>
+        </div>
+
+        <div x-show="insightsLoading" x-cloak class="rounded-lg border border-[var(--border)] bg-white/70 p-3 text-sm text-gray-600 dark:bg-slate-900/70 dark:text-slate-200">
+            Analyse wird geladen...
+        </div>
+
+        <div x-show="insightsError" x-cloak class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <span x-text="insightsError"></span>
+        </div>
+
+        <template x-if="!insightsLoading && !insightsError && insights">
+            <div class="space-y-4">
+                <div class="rounded-lg border border-[var(--border)] bg-white/70 dark:bg-slate-900/70 p-3">
+                    <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">Kurz-Zusammenfassung</div>
+                    <p class="mt-1 text-sm text-gray-700 dark:text-slate-200 whitespace-pre-line" x-text="insights.summary || 'Keine Zusammenfassung vorhanden.'"></p>
+                    <div class="mt-2 text-[11px] text-gray-500" x-show="insights.source === 'fallback'">
+                        Hinweis: Lokale Auswertung (Fallback), weil der KI-Dienst gerade nicht verfuegbar war.
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">Priorisierte Auffaelligkeiten</div>
+                    <template x-if="!insights.prioritized_findings || insights.prioritized_findings.length === 0">
+                        <div class="rounded-lg border border-[var(--border)] bg-white/70 dark:bg-slate-900/70 p-3 text-sm text-gray-500">
+                            Keine kritischen Auffaelligkeiten gefunden.
+                        </div>
+                    </template>
+                    <div class="space-y-2" x-show="insights.prioritized_findings && insights.prioritized_findings.length > 0">
+                        <template x-for="(item, idx) in insights.prioritized_findings" :key="(item.code || 'finding') + '-' + idx">
+                            <div class="rounded-lg border border-[var(--border)] bg-white/70 dark:bg-slate-900/70 p-3">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold" :class="severityClass(item.severity)" x-text="severityLabel(item.severity)"></span>
+                                    <span class="text-sm font-semibold text-gray-900 dark:text-slate-100" x-text="item.title || item.code || 'Auffaelligkeit'"></span>
+                                </div>
+                                <p class="mt-1 text-sm text-gray-700 dark:text-slate-200" x-text="item.description || ''"></p>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">Sparpotenzial</div>
+                    <template x-if="!insights.suggested_fixes || insights.suggested_fixes.length === 0">
+                        <div class="rounded-lg border border-[var(--border)] bg-white/70 dark:bg-slate-900/70 p-3 text-sm text-gray-500">
+                            Kein konkretes Sparpotenzial erkannt.
+                        </div>
+                    </template>
+                    <div class="space-y-2" x-show="insights.suggested_fixes && insights.suggested_fixes.length > 0">
+                        <template x-for="(fix, idx) in insights.suggested_fixes" :key="'fix-' + idx">
+                            <div class="rounded-lg border border-[var(--border)] bg-white/70 dark:bg-slate-900/70 p-3">
+                                <div class="text-sm font-semibold text-gray-900 dark:text-slate-100" x-text="fix.title || 'Empfehlung'"></div>
+                                <p class="mt-1 text-sm text-gray-700 dark:text-slate-200" x-text="fix.description || ''"></p>
+                                <div
+                                    class="mt-1 text-[11px] font-semibold text-emerald-700"
+                                    x-show="fix.amount_reference !== undefined && fix.amount_reference !== null"
+                                    x-text="'Potenzial: CHF ' + Number(fix.amount_reference).toFixed(2)"
+                                ></div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">Rueckfragen</div>
+                    <template x-if="!insights.questions || insights.questions.length === 0">
+                        <div class="rounded-lg border border-[var(--border)] bg-white/70 dark:bg-slate-900/70 p-3 text-sm text-gray-500">
+                            Keine Rueckfragen.
+                        </div>
+                    </template>
+                    <ul class="space-y-1 text-sm text-gray-700 dark:text-slate-200" x-show="insights.questions && insights.questions.length > 0">
+                        <template x-for="(question, idx) in insights.questions" :key="'question-' + idx">
+                            <li class="rounded-lg border border-[var(--border)] bg-white/70 dark:bg-slate-900/70 px-3 py-2" x-text="question"></li>
+                        </template>
+                    </ul>
+                </div>
+            </div>
+        </template>
     </div>
 
     <div class="sm:hidden space-y-4">
